@@ -1,32 +1,73 @@
-# React + TypeScript + Vite
+# Synaptique
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+> 知識を貯めるだけでなく、つなげることで初めて価値が生まれる。
 
-Currently, two official plugins are available:
+アイデアをつなげるマインドマップアプリ。ノードを右方向に展開し、思考の流れを視覚化します。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 名前の由来
 
-## React Compiler
+**Synaptique（シナプティック）** は、Synapse（シナプス）とフランス語の形容詞語尾 *-ique* を組み合わせた造語です。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+脳のニューロン同士をつなぐ「シナプス」は、単体では意味を持たない情報同士が接続されることで、記憶・思考・理解という高次の機能を生み出す構造です。これは、断片的な知識やメモが互いにリンクし合うことで、新しい気づきや体系的な理解へと発展していく本アプリのコンセプトそのものです。
 
-## Expanding the Oxlint configuration
+語尾に *-ique* を採用したのは、単なる直訳的な英単語ではなく、知的で洗練された響きを持たせるため。*classique*（古典的な）や *poétique*（詩的な）のように、対象の本質的な特徴を形容するこの語尾を通じて、「シナプスのようなアプリ」ではなく、**「知識が接続され、意味を持つ状態そのもの」** を指す言葉として選びました。
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+## 機能
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+- **マインドマップ編集** — ノードの追加・削除・ラベル編集・カラー変更
+  - 右＋ボタン: 子ノード追加（次の世代）
+  - 下＋ボタン: 兄弟ノード追加（同じ世代）
+- **複数シート** — タブ切り替えで複数のマインドマップを管理
+- **自動整列** — ツールバーの整列ボタンで左右展開レイアウトに整頓
+- **ズーム・パン** — キャンバスを自由に移動・拡縮
+- **Googleログイン** — Supabase Auth による認証
+
+## 技術スタック
+
+| カテゴリ | ライブラリ |
+|----------|-----------|
+| フレームワーク | React 19 + TypeScript |
+| ビルド | Vite |
+| マインドマップ | @xyflow/react |
+| 状態管理 | Zustand（永続化あり） |
+| アニメーション | Framer Motion |
+| 認証・DB | Supabase |
+| アイコン | Lucide React |
+
+## セットアップ
+
+```bash
+npm install
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Supabase の接続情報を `.env` に設定します：
+
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+## 開発サーバー起動
+
+```bash
+npm run dev
+```
+
+## ビルド
+
+```bash
+npm run build
+```
+
+## プロジェクト構成
+
+```
+src/
+├── features/
+│   ├── auth/           # 認証（ログイン画面・useAuth）
+│   └── mindmap/
+│       ├── components/ # UIコンポーネント
+│       └── store/      # Zustand ストア
+└── lib/
+    └── supabase.ts     # Supabase クライアント
+```
