@@ -38,7 +38,9 @@ interface MindmapStore {
   onEdgesChange: (changes: EdgeChange[]) => void
   onConnect: (connection: Connection) => void
 
-  addChildNode: (parentId: string, direction: 'right' | 'bottom') => void
+  addChildNode: (parentId: string) => void
+  addChildNodeBelow: (parentId: string) => void
+  addSiblingNode: (nodeId: string) => void
   tidyLayout: () => void
   updateNodeLabel: (id: string, label: string) => void
   updateNodeColor: (id: string, color: NodeColor) => void
@@ -66,6 +68,26 @@ const generateId = () => `node-${Date.now()}-${nodeIdCounter++}`
 const generateSheetId = () => `sheet-${Date.now()}`
 
 const COLORS: NodeColor[] = ['purple', 'blue', 'cyan', 'green', 'pink', 'orange']
+
+const NODE_W = 260
+const NODE_H = 80
+
+function findFreePosition(
+  nodes: Node<MindmapNodeData>[],
+  proposed: { x: number; y: number },
+  shift: 'y' | 'x'
+): { x: number; y: number } {
+  let pos = { ...proposed }
+  for (let i = 0; i < 30; i++) {
+    const overlaps = nodes.some(
+      (n) => Math.abs(n.position.x - pos.x) < NODE_W && Math.abs(n.position.y - pos.y) < NODE_H
+    )
+    if (!overlaps) return pos
+    if (shift === 'y') pos = { ...pos, y: pos.y + NODE_H + 20 }
+    else pos = { ...pos, x: pos.x + NODE_W + 20 }
+  }
+  return pos
+}
 
 const initialSheet: Sheet = {
   id: 'sheet-1',
@@ -107,9 +129,16 @@ export const useMindmapStore = create<MindmapStore>()(
         const parent = nodes.find((n) => n.id === parentId)
         if (!parent) return
 
-        const siblingCount = edges.filter((e) => e.source === parentId).length
-        const spread = siblingCount % 2 === 0 ? siblingCount / 2 : -(Math.ceil(siblingCount / 2))
-        const GAP = 180
+        const existingChildren = edges
+          .filter((e) => e.source === parentId && e.sourceHandle === 'right')
+          .map((e) => nodes.find((n) => n.id === e.target))
+          .filter((n): n is Node<MindmapNodeData> => !!n)
+          .sort((a, b) => a.position.y - b.position.y)
+
+        const newY =
+          existingChildren.length === 0
+            ? parent.position.y
+            : existingChildren[existingChildren.length - 1].position.y + 100
 
         const colorIndex = nodes.length % COLORS.length
         const newId = generateId()
@@ -118,10 +147,51 @@ export const useMindmapStore = create<MindmapStore>()(
         const newNode: Node<MindmapNodeData> = {
           id: newId,
           type: 'mindmapNode',
-          position: {
-            x: parent.position.x + spread * GAP,
-            y: parent.position.y + 200,
-          },
+          position: { x: parent.position.x + 240, y: newY },
+          data: { label: 'アイデア', color: COLORS[colorIndex], depth: parentDepth + 1 },
+        }
+
+        const newEdge: Edge = {
+          id: `edge-${parentId}-${newId}`,
+          source: parentId,
+          target: newId,
+          sourceHandle: 'right',
+          targetHandle: 'left',
+          type: 'default',
+          style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 },
+        }
+
+        set({
+          nodes: [...nodes, newNode],
+          edges: [...edges, newEdge],
+          selectedNodeId: newId,
+        })
+      },
+
+      addChildNodeBelow: (parentId) => {
+        const { nodes, edges } = get()
+        const parent = nodes.find((n) => n.id === parentId)
+        if (!parent) return
+
+        const existingBelow = edges
+          .filter((e) => e.source === parentId && e.sourceHandle === 'bottom')
+          .map((e) => nodes.find((n) => n.id === e.target))
+          .filter((n): n is Node<MindmapNodeData> => !!n)
+          .sort((a, b) => a.position.x - b.position.x)
+
+        const newX =
+          existingBelow.length === 0
+            ? parent.position.x
+            : existingBelow[existingBelow.length - 1].position.x + 200
+
+        const colorIndex = nodes.length % COLORS.length
+        const newId = generateId()
+        const parentDepth = parent.data.depth ?? 0
+
+        const newNode: Node<MindmapNodeData> = {
+          id: newId,
+          type: 'mindmapNode',
+          position: { x: newX, y: parent.position.y + 130 },
           data: { label: 'アイデア', color: COLORS[colorIndex], depth: parentDepth + 1 },
         }
 
@@ -133,7 +203,45 @@ export const useMindmapStore = create<MindmapStore>()(
           targetHandle: 'top',
           type: 'default',
           style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 },
-          data: { direction: 'bottom' },
+        }
+
+        set({
+          nodes: [...nodes, newNode],
+          edges: [...edges, newEdge],
+          selectedNodeId: newId,
+        })
+      },
+
+      addSiblingNode: (nodeId) => {
+        const { nodes, edges } = get()
+        // ルートノードは兄弟を持てない
+        const parentEdge = edges.find((e) => e.target === nodeId)
+        if (!parentEdge) return
+
+        const parentId = parentEdge.source
+        const parent = nodes.find((n) => n.id === parentId)
+        const currentNode = nodes.find((n) => n.id === nodeId)
+        if (!parent || !currentNode) return
+
+        const colorIndex = nodes.length % COLORS.length
+        const newId = generateId()
+        const parentDepth = parent.data.depth ?? 0
+
+        const newNode: Node<MindmapNodeData> = {
+          id: newId,
+          type: 'mindmapNode',
+          position: { x: currentNode.position.x, y: currentNode.position.y + 100 },
+          data: { label: 'アイデア', color: COLORS[colorIndex], depth: parentDepth + 1 },
+        }
+
+        const newEdge: Edge = {
+          id: `edge-${parentId}-${newId}`,
+          source: parentId,
+          target: newId,
+          sourceHandle: 'right',
+          targetHandle: 'left',
+          type: 'default',
+          style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 },
         }
 
         set({
@@ -146,33 +254,33 @@ export const useMindmapStore = create<MindmapStore>()(
       tidyLayout: () => {
         const { nodes, edges } = get()
 
-        const NODE_W = 160
-        const H_GAP = 40
-        const V_STEP = 140
+        const NODE_H = 60
+        const V_GAP = 24
+        const H_STEP = 240
 
         const childrenOf = (id: string) =>
           edges.filter((e) => e.source === id).map((e) => e.target as string)
 
-        const subtreeWidth = (id: string): number => {
+        const subtreeHeight = (id: string): number => {
           const children = childrenOf(id)
-          if (children.length === 0) return NODE_W
-          const total = children.reduce((sum, c) => sum + subtreeWidth(c), 0)
-          return total + (children.length - 1) * H_GAP
+          if (children.length === 0) return NODE_H
+          const total = children.reduce((sum, c) => sum + subtreeHeight(c), 0)
+          return total + (children.length - 1) * V_GAP
         }
 
         const positions: Record<string, { x: number; y: number }> = {}
 
-        const layout = (id: string, x: number, depth: number) => {
-          positions[id] = { x, y: depth * V_STEP }
+        const layout = (id: string, y: number, depth: number) => {
+          positions[id] = { x: depth * H_STEP, y }
           const children = childrenOf(id)
-          const totalW =
-            children.reduce((s, c) => s + subtreeWidth(c), 0) +
-            (children.length - 1) * H_GAP
-          let curX = x - totalW / 2
+          const totalH =
+            children.reduce((s, c) => s + subtreeHeight(c), 0) +
+            (children.length - 1) * V_GAP
+          let curY = y - totalH / 2
           for (const c of children) {
-            const w = subtreeWidth(c)
-            layout(c, curX + w / 2, depth + 1)
-            curX += w + H_GAP
+            const h = subtreeHeight(c)
+            layout(c, curY + h / 2, depth + 1)
+            curY += h + V_GAP
           }
         }
 

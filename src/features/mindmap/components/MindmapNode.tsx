@@ -39,7 +39,7 @@ const ADD_BTN: React.CSSProperties = {
 }
 
 export function MindmapNode({ id, data, selected }: NodeProps<Node<MindmapNodeData>>) {
-  const { addChildNode, updateNodeLabel, deleteNode, setSelectedNodeId } = useMindmapStore()
+  const { addChildNode, addChildNodeBelow, updateNodeLabel, deleteNode, setSelectedNodeId } = useMindmapStore()
   const [editing, setEditing] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [draft, setDraft] = useState(data.label)
@@ -157,7 +157,7 @@ export function MindmapNode({ id, data, selected }: NodeProps<Node<MindmapNodeDa
         )}
       </AnimatePresence>
 
-      {/* 右の + ボタン */}
+      {/* 右の + ボタン → 子ノード追加（次の世代） */}
       <AnimatePresence>
         {showActions && (
           <motion.button
@@ -166,16 +166,16 @@ export function MindmapNode({ id, data, selected }: NodeProps<Node<MindmapNodeDa
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.6 }}
             transition={{ duration: 0.12 }}
-            onClick={(e) => { e.stopPropagation(); addChildNode(id, 'right') }}
+            onClick={(e) => { e.stopPropagation(); addChildNode(id) }}
             style={{ ...ADD_BTN, right: -11, top: '50%', marginTop: -11 }}
-            title="右に追加"
+            title="子ノードを追加"
           >
             <Plus size={13} />
           </motion.button>
         )}
       </AnimatePresence>
 
-      {/* 下の + ボタン（長辺中央） */}
+      {/* 下の + ボタン → 子ノード追加（下方向） */}
       <AnimatePresence>
         {showActions && (
           <motion.button
@@ -184,14 +184,15 @@ export function MindmapNode({ id, data, selected }: NodeProps<Node<MindmapNodeDa
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.6 }}
             transition={{ duration: 0.12 }}
-            onClick={(e) => { e.stopPropagation(); addChildNode(id, 'bottom') }}
+            onClick={(e) => { e.stopPropagation(); addChildNodeBelow(id) }}
             style={{ ...ADD_BTN, bottom: -11, left: '50%', marginLeft: -11 }}
-            title="下に追加"
+            title="下に子ノードを追加"
           >
             <Plus size={13} />
           </motion.button>
         )}
       </AnimatePresence>
+
     </motion.div>
   )
 }
