@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
+import { useMindmapStore } from '../mindmap/store/mindmapStore'
+
+const APP_URL = import.meta.env.VITE_APP_URL ?? 'https://synaptique-dun.vercel.app'
+const STORAGE_KEY = 'ore-no-mindmap-storage'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
@@ -22,10 +26,14 @@ export function useAuth() {
   const signInWithGoogle = () =>
     supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: APP_URL },
     })
 
-  const signOut = () => supabase.auth.signOut()
+  const signOut = async () => {
+    localStorage.removeItem(STORAGE_KEY)
+    useMindmapStore.persist.clearStorage()
+    await supabase.auth.signOut()
+  }
 
   return { user, loading, signInWithGoogle, signOut }
 }
