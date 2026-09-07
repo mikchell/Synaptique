@@ -1,7 +1,10 @@
 import { motion } from 'framer-motion'
-import { Brain, Save } from 'lucide-react'
+import { Brain, LogOut, Save } from 'lucide-react'
+import { useAuth } from '../../auth/useAuth'
 
 export function Header() {
+  const { user, signOut } = useAuth()
+
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
@@ -51,12 +54,44 @@ export function Header() {
         </span>
       </div>
 
-      {/* 自動保存インジケーター */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Save size={13} color="#22c55e" />
-        <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 500 }}>
-          自動保存済み
-        </span>
+      {/* 右側 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Save size={13} color="#22c55e" />
+          <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 500 }}>自動保存済み</span>
+        </div>
+
+        {user && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {user.user_metadata?.avatar_url && (
+              <img
+                src={user.user_metadata.avatar_url}
+                alt="avatar"
+                style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }}
+              />
+            )}
+            <button
+              onClick={() => signOut()}
+              title="ログアウト"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                background: 'none',
+                border: '1px solid rgba(0,0,0,0.1)',
+                borderRadius: 8,
+                padding: '4px 10px',
+                cursor: 'pointer',
+                color: '#64748b',
+                fontSize: 12,
+                fontWeight: 500,
+              }}
+            >
+              <LogOut size={13} />
+              ログアウト
+            </button>
+          </div>
+        )}
       </div>
     </motion.header>
   )

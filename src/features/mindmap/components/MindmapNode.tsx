@@ -1,67 +1,44 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { type MindmapNodeData, type NodeColor, useMindmapStore } from '../store/mindmapStore'
 
 const COLOR_MAP: Record<NodeColor, { bg: string; border: string; glow: string; text: string }> = {
-  purple: {
-    bg: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)',
-    border: 'rgba(124, 58, 237, 0.6)',
-    glow: 'rgba(124, 58, 237, 0.3)',
-    text: '#e9d5ff',
-  },
-  blue: {
-    bg: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
-    border: 'rgba(37, 99, 235, 0.6)',
-    glow: 'rgba(37, 99, 235, 0.3)',
-    text: '#bfdbfe',
-  },
-  cyan: {
-    bg: 'linear-gradient(135deg, #164e63 0%, #0891b2 100%)',
-    border: 'rgba(8, 145, 178, 0.6)',
-    glow: 'rgba(8, 145, 178, 0.3)',
-    text: '#a5f3fc',
-  },
-  green: {
-    bg: 'linear-gradient(135deg, #14532d 0%, #16a34a 100%)',
-    border: 'rgba(22, 163, 74, 0.6)',
-    glow: 'rgba(22, 163, 74, 0.3)',
-    text: '#bbf7d0',
-  },
-  pink: {
-    bg: 'linear-gradient(135deg, #831843 0%, #db2777 100%)',
-    border: 'rgba(219, 39, 119, 0.6)',
-    glow: 'rgba(219, 39, 119, 0.3)',
-    text: '#fbcfe8',
-  },
-  orange: {
-    bg: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)',
-    border: 'rgba(234, 88, 12, 0.6)',
-    glow: 'rgba(234, 88, 12, 0.3)',
-    text: '#fed7aa',
-  },
+  purple: { bg: '#f3e8ff', border: 'rgba(139, 92, 246, 0.4)', glow: 'rgba(139, 92, 246, 0.12)', text: '#5b21b6' },
+  blue:   { bg: '#dbeafe', border: 'rgba(59, 130, 246, 0.4)',  glow: 'rgba(59, 130, 246, 0.12)',  text: '#1e40af' },
+  cyan:   { bg: '#cffafe', border: 'rgba(6, 182, 212, 0.4)',   glow: 'rgba(6, 182, 212, 0.12)',   text: '#0e7490' },
+  green:  { bg: '#dcfce7', border: 'rgba(34, 197, 94, 0.4)',   glow: 'rgba(34, 197, 94, 0.12)',   text: '#15803d' },
+  pink:   { bg: '#fce7f3', border: 'rgba(236, 72, 153, 0.4)',  glow: 'rgba(236, 72, 153, 0.12)',  text: '#be185d' },
+  orange: { bg: '#ffedd5', border: 'rgba(249, 115, 22, 0.4)',  glow: 'rgba(249, 115, 22, 0.12)',  text: '#c2410c' },
 }
+
+// depth 0 = root（最大）、depth が深くなるほど小さく
+const SIZE_MAP = [
+  { minWidth: 200, maxWidth: 280, fontSize: 18, fontWeight: 700, padding: '20px 28px', borderRadius: 24, borderWidth: 2 },
+  { minWidth: 150, maxWidth: 210, fontSize: 15, fontWeight: 600, padding: '14px 20px', borderRadius: 18, borderWidth: 1.5 },
+  { minWidth: 120, maxWidth: 170, fontSize: 13, fontWeight: 500, padding: '10px 14px', borderRadius: 13, borderWidth: 1.5 },
+  { minWidth: 100, maxWidth: 150, fontSize: 12, fontWeight: 500, padding: '8px 12px',  borderRadius: 10, borderWidth: 1 },
+]
 
 const ADD_BTN: React.CSSProperties = {
   position: 'absolute',
   width: 22,
   height: 22,
   borderRadius: '50%',
-  background: 'rgba(20, 20, 30, 0.95)',
-  border: '1.5px solid rgba(124, 58, 237, 0.7)',
-  color: '#a78bfa',
+  background: '#ffffff',
+  border: '1.5px solid rgba(124, 58, 237, 0.5)',
+  color: '#7c3aed',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   cursor: 'pointer',
   zIndex: 20,
-  backdropFilter: 'blur(8px)',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+  boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
   padding: 0,
 }
 
-export function MindmapNode({ id, data, selected }: NodeProps<MindmapNodeData>) {
+export function MindmapNode({ id, data, selected }: NodeProps<Node<MindmapNodeData>>) {
   const { addChildNode, updateNodeLabel, deleteNode, setSelectedNodeId } = useMindmapStore()
   const [editing, setEditing] = useState(false)
   const [hovered, setHovered] = useState(false)
@@ -69,6 +46,8 @@ export function MindmapNode({ id, data, selected }: NodeProps<MindmapNodeData>) 
   const inputRef = useRef<HTMLInputElement>(null)
   const colors = COLOR_MAP[data.color]
   const showActions = (selected || hovered) && !editing
+  const depth = data.depth ?? 0
+  const sz = SIZE_MAP[Math.min(depth, SIZE_MAP.length - 1)]
 
   useEffect(() => { setDraft(data.label) }, [data.label])
 
@@ -101,15 +80,15 @@ export function MindmapNode({ id, data, selected }: NodeProps<MindmapNodeData>) 
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       className="mindmap-node"
       style={{
-        minWidth: data.isRoot ? 160 : 130,
-        maxWidth: data.isRoot ? 220 : 180,
-        borderRadius: data.isRoot ? 20 : 14,
+        minWidth: sz.minWidth,
+        maxWidth: sz.maxWidth,
+        borderRadius: sz.borderRadius,
         background: colors.bg,
-        border: `1.5px solid ${colors.border}`,
+        border: `${sz.borderWidth}px solid ${colors.border}`,
         boxShadow: selected
-          ? `0 0 0 2px #7c3aed, 0 0 32px ${colors.glow}, 0 8px 32px rgba(0,0,0,0.4)`
-          : `0 4px 20px rgba(0,0,0,0.3), 0 0 12px ${colors.glow}`,
-        padding: data.isRoot ? '16px 20px' : '12px 16px',
+          ? `0 0 0 2px #7c3aed, 0 4px 16px ${colors.glow}`
+          : `0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px ${colors.border}`,
+        padding: sz.padding,
         cursor: 'grab',
         userSelect: 'none',
         position: 'relative',
@@ -120,13 +99,11 @@ export function MindmapNode({ id, data, selected }: NodeProps<MindmapNodeData>) 
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* React Flow ハンドル（接続ポイント、不可視） */}
       <Handle id="left"   type="target" position={Position.Left}   style={{ opacity: 0, pointerEvents: 'none' }} />
       <Handle id="right"  type="source" position={Position.Right}  style={{ opacity: 0, pointerEvents: 'none' }} />
       <Handle id="top"    type="target" position={Position.Top}    style={{ opacity: 0, pointerEvents: 'none' }} />
       <Handle id="bottom" type="source" position={Position.Bottom} style={{ opacity: 0, pointerEvents: 'none' }} />
 
-      {/* ラベル */}
       {editing ? (
         <input
           ref={inputRef}
@@ -139,8 +116,8 @@ export function MindmapNode({ id, data, selected }: NodeProps<MindmapNodeData>) 
             border: 'none',
             outline: 'none',
             color: colors.text,
-            fontSize: data.isRoot ? 16 : 14,
-            fontWeight: data.isRoot ? 700 : 500,
+            fontSize: sz.fontSize,
+            fontWeight: sz.fontWeight,
             width: '100%',
             textAlign: 'center',
           }}
@@ -149,8 +126,8 @@ export function MindmapNode({ id, data, selected }: NodeProps<MindmapNodeData>) 
         <p
           style={{
             color: colors.text,
-            fontSize: data.isRoot ? 16 : 14,
-            fontWeight: data.isRoot ? 700 : 500,
+            fontSize: sz.fontSize,
+            fontWeight: sz.fontWeight,
             margin: 0,
             textAlign: 'center',
             wordBreak: 'break-word',
@@ -161,26 +138,22 @@ export function MindmapNode({ id, data, selected }: NodeProps<MindmapNodeData>) 
         </p>
       )}
 
-      {/* 削除ボタン（左上、選択/ホバー時） */}
+      {/* 削除ボタン */}
       <AnimatePresence>
         {showActions && id !== 'root' && (
-          <motion.button
-            key="delete"
-            initial={{ opacity: 0, scale: 0.6 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.6 }}
-            transition={{ duration: 0.12 }}
-            onClick={(e) => { e.stopPropagation(); deleteNode(id) }}
-            style={{
-              ...ADD_BTN,
-              top: -10,
-              left: -10,
-              border: '1.5px solid rgba(239, 68, 68, 0.7)',
-              color: '#f87171',
-            }}
-          >
-            <Trash2 size={11} />
-          </motion.button>
+          <div style={{ position: 'absolute', top: -10, left: -10 }}>
+            <motion.button
+              key="delete"
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.6 }}
+              transition={{ duration: 0.12 }}
+              onClick={(e) => { e.stopPropagation(); deleteNode(id) }}
+              style={{ ...ADD_BTN, border: '1.5px solid rgba(239, 68, 68, 0.6)', color: '#ef4444' }}
+            >
+              <Trash2 size={11} />
+            </motion.button>
+          </div>
         )}
       </AnimatePresence>
 
@@ -194,12 +167,7 @@ export function MindmapNode({ id, data, selected }: NodeProps<MindmapNodeData>) 
             exit={{ opacity: 0, scale: 0.6 }}
             transition={{ duration: 0.12 }}
             onClick={(e) => { e.stopPropagation(); addChildNode(id, 'right') }}
-            style={{
-              ...ADD_BTN,
-              right: -11,
-              top: '50%',
-              transform: 'translateY(-50%)',
-            }}
+            style={{ ...ADD_BTN, right: -11, top: '50%', marginTop: -11 }}
             title="右に追加"
           >
             <Plus size={13} />
@@ -207,7 +175,7 @@ export function MindmapNode({ id, data, selected }: NodeProps<MindmapNodeData>) 
         )}
       </AnimatePresence>
 
-      {/* 下の + ボタン */}
+      {/* 下の + ボタン（長辺中央） */}
       <AnimatePresence>
         {showActions && (
           <motion.button
@@ -217,12 +185,7 @@ export function MindmapNode({ id, data, selected }: NodeProps<MindmapNodeData>) 
             exit={{ opacity: 0, scale: 0.6 }}
             transition={{ duration: 0.12 }}
             onClick={(e) => { e.stopPropagation(); addChildNode(id, 'bottom') }}
-            style={{
-              ...ADD_BTN,
-              bottom: -11,
-              left: '50%',
-              transform: 'translateX(-50%)',
-            }}
+            style={{ ...ADD_BTN, bottom: -11, left: '50%', marginLeft: -11 }}
             title="下に追加"
           >
             <Plus size={13} />

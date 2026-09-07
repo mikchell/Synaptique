@@ -11,6 +11,7 @@ import { MindmapNode } from './MindmapNode'
 import { NodePanel } from './NodePanel'
 import { Toolbar } from './Toolbar'
 import { HelpHint } from './HelpHint'
+import { SheetTabs } from './SheetTabs'
 
 const nodeTypes = { mindmapNode: MindmapNode }
 
@@ -19,7 +20,7 @@ function MindmapFlow() {
     useMindmapStore()
 
   return (
-    <div style={{ width: '100vw', height: '100vh', paddingTop: 56 }}>
+    <div style={{ width: '100vw', height: '100vh', paddingTop: 56, paddingBottom: 40 }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -64,6 +65,7 @@ function MindmapFlow() {
       <Toolbar />
       <NodePanel />
       <HelpHint />
+      <SheetTabs />
     </div>
   )
 }

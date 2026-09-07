@@ -1,13 +1,13 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { type NodeColor, useMindmapStore } from '../store/mindmapStore'
 
-const COLORS: { key: NodeColor; label: string; hex: string }[] = [
-  { key: 'purple', label: 'パープル', hex: '#7c3aed' },
-  { key: 'blue', label: 'ブルー', hex: '#2563eb' },
-  { key: 'cyan', label: 'シアン', hex: '#0891b2' },
-  { key: 'green', label: 'グリーン', hex: '#16a34a' },
-  { key: 'pink', label: 'ピンク', hex: '#db2777' },
-  { key: 'orange', label: 'オレンジ', hex: '#ea580c' },
+const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] = [
+  { key: 'purple', label: 'パープル', hex: '#f3e8ff', border: 'rgba(139,92,246,0.5)' },
+  { key: 'blue',   label: 'ブルー',   hex: '#dbeafe', border: 'rgba(59,130,246,0.5)' },
+  { key: 'cyan',   label: 'シアン',   hex: '#cffafe', border: 'rgba(6,182,212,0.5)' },
+  { key: 'green',  label: 'グリーン', hex: '#dcfce7', border: 'rgba(34,197,94,0.5)' },
+  { key: 'pink',   label: 'ピンク',   hex: '#fce7f3', border: 'rgba(236,72,153,0.5)' },
+  { key: 'orange', label: 'オレンジ', hex: '#ffedd5', border: 'rgba(249,115,22,0.5)' },
 ]
 
 export function NodePanel() {
@@ -67,15 +67,13 @@ export function NodePanel() {
                   height: 36,
                   borderRadius: 10,
                   background: c.hex,
-                  border:
-                    selectedNode.data.color === c.key
-                      ? '2.5px solid white'
-                      : '2px solid transparent',
+                  border: selectedNode.data.color === c.key
+                    ? `2.5px solid ${c.border.replace('0.5)', '1)')}`
+                    : `1.5px solid ${c.border}`,
                   cursor: 'pointer',
-                  boxShadow:
-                    selectedNode.data.color === c.key
-                      ? `0 0 12px ${c.hex}`
-                      : 'none',
+                  boxShadow: selectedNode.data.color === c.key
+                    ? `0 0 0 3px ${c.border}`
+                    : 'none',
                   transition: 'all 0.15s ease',
                 }}
               />
