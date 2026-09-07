@@ -1,0 +1,69 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f4f6fb;
+  --bg-glass: rgba(0, 0, 0, 0.03);
+  --border-glass: rgba(0, 0, 0, 0.08);
+  --accent-purple: #7c3aed;
+  --accent-blue: #2563eb;
+  --accent-cyan: #06b6d4;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow: hidden;
+}
+
+
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+.react-flow__background {
+  background-color: var(--bg-primary);
+}
+
+.react-flow__minimap {
+  background-color: #f8faff !important;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(124, 58, 237, 0.08);
+}
+
+.react-flow__controls {
+  display: none;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__node.selected .mindmap-node {
+  box-shadow: 0 0 0 2px #7c3aed, 0 0 24px rgba(124, 58, 237, 0.25);
+}
+
+.react-flow__handle {
+  opacity: 0;
+  pointer-events: all;
+}
+
+.react-flow__node:hover .react-flow__handle {
+  opacity: 1;
+}
