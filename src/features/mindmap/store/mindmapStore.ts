@@ -33,6 +33,7 @@ interface MindmapStore {
   nodes: Node<MindmapNodeData>[]
   edges: Edge[]
   selectedNodeId: string | null
+  editingNodeId: string | null
 
   onNodesChange: (changes: NodeChange[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
@@ -46,6 +47,7 @@ interface MindmapStore {
   updateNodeColor: (id: string, color: NodeColor) => void
   deleteNode: (id: string) => void
   setSelectedNodeId: (id: string | null) => void
+  setEditingNodeId: (id: string | null) => void
   resetMindmap: () => void
 
   addSheet: () => void
@@ -114,6 +116,7 @@ export const useMindmapStore = create<MindmapStore>()(
       nodes: initialSheet.nodes,
       edges: initialSheet.edges,
       selectedNodeId: null,
+      editingNodeId: null,
 
       onNodesChange: (changes) => {
         set({ nodes: applyNodeChanges(changes, get().nodes) as Node<MindmapNodeData>[] })
@@ -182,6 +185,7 @@ export const useMindmapStore = create<MindmapStore>()(
           nodes: [...nodes, newNode],
           edges: [...edges, newEdge],
           selectedNodeId: newId,
+          editingNodeId: newId,
         })
       },
 
@@ -233,6 +237,7 @@ export const useMindmapStore = create<MindmapStore>()(
           nodes: [...nodes, newNode],
           edges: [...edges, newEdge],
           selectedNodeId: newId,
+          editingNodeId: newId,
         })
       },
 
@@ -357,6 +362,8 @@ export const useMindmapStore = create<MindmapStore>()(
       },
 
       setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+
+      setEditingNodeId: (id) => set({ editingNodeId: id }),
 
       resetMindmap: () => {
         const fresh = makeInitialNodes()
