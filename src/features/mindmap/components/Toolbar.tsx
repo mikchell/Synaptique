@@ -1,11 +1,14 @@
 import { motion } from 'framer-motion'
 import { Maximize2, RotateCcw, ZoomIn, ZoomOut, LayoutDashboard } from 'lucide-react'
 import { useReactFlow } from '@xyflow/react'
+import { useState } from 'react'
 import { useMindmapStore } from '../store/mindmapStore'
+import { ConfirmDialog } from './ConfirmDialog'
 
 export function Toolbar() {
   const { zoomIn, zoomOut, fitView } = useReactFlow()
   const { resetMindmap, tidyLayout } = useMindmapStore()
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const handleTidy = () => {
     tidyLayout()
@@ -13,9 +16,8 @@ export function Toolbar() {
   }
 
   const handleReset = () => {
-    if (confirm('マインドマップをリセットしますか？')) {
-      resetMindmap()
-    }
+    resetMindmap()
+    setConfirmOpen(false)
   }
 
   const buttonStyle = {
@@ -33,6 +35,7 @@ export function Toolbar() {
   }
 
   return (
+    <>
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -158,7 +161,7 @@ export function Toolbar() {
       >
         <button
           style={buttonStyle}
-          onClick={handleReset}
+          onClick={() => setConfirmOpen(true)}
           onMouseEnter={(e) => {
             ;(e.currentTarget as HTMLButtonElement).style.background =
               'rgba(239, 68, 68, 0.15)'
@@ -179,5 +182,15 @@ export function Toolbar() {
         </button>
       </div>
     </motion.div>
+
+    <ConfirmDialog
+      open={confirmOpen}
+      title="マインドマップをリセット"
+      description="すべてのノードが削除され、最初の状態に戻ります。この操作は取り消せません。"
+      confirmLabel="リセット"
+      onConfirm={handleReset}
+      onCancel={() => setConfirmOpen(false)}
+    />
+    </>
   )
 }
