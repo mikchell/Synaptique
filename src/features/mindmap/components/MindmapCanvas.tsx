@@ -4,6 +4,7 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
+  SelectionMode,
 } from '@xyflow/react'
 import { useMindmapStore } from '../store/mindmapStore'
 import { Header } from './Header'
@@ -33,6 +34,9 @@ function MindmapFlow() {
         fitViewOptions={{ padding: 0.3 }}
         minZoom={0.2}
         maxZoom={2}
+        selectionOnDrag
+        selectionMode={SelectionMode.Partial}
+        panOnDrag={[1, 2]}
         defaultEdgeOptions={{
           type: 'default',
           style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.6 },
