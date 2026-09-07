@@ -39,7 +39,7 @@ const ADD_BTN: React.CSSProperties = {
 }
 
 export function MindmapNode({ id, data, selected }: NodeProps<Node<MindmapNodeData>>) {
-  const { addChildNode, addChildNodeBelow, updateNodeLabel, deleteNode, setSelectedNodeId } = useMindmapStore()
+  const { addChildNode, addChildNodeBelow, updateNodeLabel, deleteNode, setSelectedNodeId, editingNodeId, setEditingNodeId } = useMindmapStore()
   const [editing, setEditing] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [draft, setDraft] = useState(data.label)
@@ -50,6 +50,13 @@ export function MindmapNode({ id, data, selected }: NodeProps<Node<MindmapNodeDa
   const sz = SIZE_MAP[Math.min(depth, SIZE_MAP.length - 1)]
 
   useEffect(() => { setDraft(data.label) }, [data.label])
+
+  useEffect(() => {
+    if (editingNodeId === id) {
+      setEditing(true)
+      setEditingNodeId(null)
+    }
+  }, [editingNodeId, id, setEditingNodeId])
 
   useEffect(() => {
     if (editing) {
