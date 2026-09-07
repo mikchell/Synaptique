@@ -69,6 +69,35 @@ const generateSheetId = () => `sheet-${Date.now()}`
 
 const COLORS: NodeColor[] = ['purple', 'blue', 'cyan', 'green', 'pink', 'orange']
 
+const NODE_W = 240
+const NODE_H = 80
+const PADDING = 16
+
+function overlaps(
+  pos: { x: number; y: number },
+  node: Node<MindmapNodeData>
+): boolean {
+  return (
+    Math.abs(pos.x - node.position.x) < NODE_W + PADDING &&
+    Math.abs(pos.y - node.position.y) < NODE_H + PADDING
+  )
+}
+
+function avoidCollision(
+  proposed: { x: number; y: number },
+  nodes: Node<MindmapNodeData>[],
+  shift: 'y' | 'x'
+): { x: number; y: number } {
+  let pos = { ...proposed }
+  for (let i = 0; i < 50; i++) {
+    const hit = nodes.find((n) => overlaps(pos, n))
+    if (!hit) return pos
+    if (shift === 'y') pos = { ...pos, y: hit.position.y + NODE_H + PADDING }
+    else pos = { ...pos, x: hit.position.x + NODE_W + PADDING }
+  }
+  return pos
+}
+
 
 const initialSheet: Sheet = {
   id: 'sheet-1',
@@ -116,19 +145,26 @@ export const useMindmapStore = create<MindmapStore>()(
           .filter((n): n is Node<MindmapNodeData> => !!n)
           .sort((a, b) => a.position.y - b.position.y)
 
-        const newY =
+        const baseY =
           existingChildren.length === 0
             ? parent.position.y
-            : existingChildren[existingChildren.length - 1].position.y + 100
+            : existingChildren[existingChildren.length - 1].position.y + NODE_H + PADDING
 
         const colorIndex = nodes.length % COLORS.length
         const newId = generateId()
         const parentDepth = parent.data.depth ?? 0
 
+        // x は親の右側固定、y方向のみ衝突回避
+        const position = avoidCollision(
+          { x: parent.position.x + NODE_W + PADDING, y: baseY },
+          nodes,
+          'y'
+        )
+
         const newNode: Node<MindmapNodeData> = {
           id: newId,
           type: 'mindmapNode',
-          position: { x: parent.position.x + 240, y: newY },
+          position,
           data: { label: 'アイデア', color: COLORS[colorIndex], depth: parentDepth + 1 },
         }
 
@@ -158,21 +194,28 @@ export const useMindmapStore = create<MindmapStore>()(
           .filter((e) => e.source === parentId && e.sourceHandle === 'bottom')
           .map((e) => nodes.find((n) => n.id === e.target))
           .filter((n): n is Node<MindmapNodeData> => !!n)
-          .sort((a, b) => a.position.x - b.position.x)
+          .sort((a, b) => a.position.y - b.position.y)
 
-        const newX =
+        const baseY =
           existingBelow.length === 0
-            ? parent.position.x
-            : existingBelow[existingBelow.length - 1].position.x + 200
+            ? parent.position.y + NODE_H + PADDING
+            : existingBelow[existingBelow.length - 1].position.y + NODE_H + PADDING
 
         const colorIndex = nodes.length % COLORS.length
         const newId = generateId()
         const parentDepth = parent.data.depth ?? 0
 
+        // x は親と同じ位置固定、y方向のみ衝突回避
+        const position = avoidCollision(
+          { x: parent.position.x, y: baseY },
+          nodes,
+          'y'
+        )
+
         const newNode: Node<MindmapNodeData> = {
           id: newId,
           type: 'mindmapNode',
-          position: { x: newX, y: parent.position.y + 130 },
+          position,
           data: { label: 'アイデア', color: COLORS[colorIndex], depth: parentDepth + 1 },
         }
 
@@ -208,10 +251,17 @@ export const useMindmapStore = create<MindmapStore>()(
         const newId = generateId()
         const parentDepth = parent.data.depth ?? 0
 
+        // x は現在ノードと同じ（同世代）、y方向のみ衝突回避
+        const position = avoidCollision(
+          { x: currentNode.position.x, y: currentNode.position.y + NODE_H + PADDING },
+          nodes,
+          'y'
+        )
+
         const newNode: Node<MindmapNodeData> = {
           id: newId,
           type: 'mindmapNode',
-          position: { x: currentNode.position.x, y: currentNode.position.y + 100 },
+          position,
           data: { label: 'アイデア', color: COLORS[colorIndex], depth: parentDepth + 1 },
         }
 
