@@ -376,7 +376,7 @@ export const useMindmapStore = create<MindmapStore>()(
       },
     }),
     {
-      name: 'ore-no-mindmap-storage',
+      name: 'synaptique-storage',
       partialize: (state) => ({
         sheets: state.sheets.map((s) =>
           s.id === state.currentSheetId
