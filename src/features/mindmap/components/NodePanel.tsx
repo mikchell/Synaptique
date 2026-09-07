@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
+import { GripVertical } from 'lucide-react'
 import { type NodeColor, useMindmapStore } from '../store/mindmapStore'
 
 const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] = [
@@ -19,6 +20,8 @@ export function NodePanel() {
       {selectedNode && (
         <motion.div
           key="node-panel"
+          drag
+          dragMomentum={false}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 20 }}
@@ -26,8 +29,7 @@ export function NodePanel() {
           style={{
             position: 'fixed',
             right: 24,
-            top: '50%',
-            transform: 'translateY(-50%)',
+            top: 'calc(50vh - 80px)',
             background: 'rgba(255, 255, 255, 0.95)',
             border: '1px solid rgba(0,0,0,0.1)',
             borderRadius: 18,
@@ -38,18 +40,29 @@ export function NodePanel() {
             boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
           }}
         >
-          <p
+          <div
             style={{
-              color: '#94a3b8',
-              fontSize: 11,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              margin: '0 0 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              marginBottom: 14,
+              cursor: 'grab',
             }}
           >
-            ノードカラー
-          </p>
+            <GripVertical size={13} color="#cbd5e1" />
+            <p
+              style={{
+                color: '#94a3b8',
+                fontSize: 11,
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                margin: 0,
+              }}
+            >
+              ノードカラー
+            </p>
+          </div>
           <div
             style={{
               display: 'grid',
