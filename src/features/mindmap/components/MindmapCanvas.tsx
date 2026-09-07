@@ -5,7 +5,9 @@ import {
   ReactFlow,
   ReactFlowProvider,
   SelectionMode,
+  useReactFlow,
 } from '@xyflow/react'
+import { useEffect } from 'react'
 import { useMindmapStore } from '../store/mindmapStore'
 import { Header } from './Header'
 import { MindmapNode } from './MindmapNode'
@@ -17,8 +19,16 @@ import { SheetTabs } from './SheetTabs'
 const nodeTypes = { mindmapNode: MindmapNode }
 
 function MindmapFlow() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setSelectedNodeId } =
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setSelectedNodeId, editingNodeId } =
     useMindmapStore()
+  const { setCenter, getZoom } = useReactFlow()
+
+  useEffect(() => {
+    if (!editingNodeId) return
+    const node = nodes.find((n) => n.id === editingNodeId)
+    if (!node) return
+    setCenter(node.position.x, node.position.y, { zoom: getZoom(), duration: 300 })
+  }, [editingNodeId])
 
   return (
     <div style={{ width: '100vw', height: '100vh', paddingTop: 56, paddingBottom: 40 }}>
