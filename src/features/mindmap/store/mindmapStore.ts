@@ -69,25 +69,6 @@ const generateSheetId = () => `sheet-${Date.now()}`
 
 const COLORS: NodeColor[] = ['purple', 'blue', 'cyan', 'green', 'pink', 'orange']
 
-const NODE_W = 260
-const NODE_H = 80
-
-function findFreePosition(
-  nodes: Node<MindmapNodeData>[],
-  proposed: { x: number; y: number },
-  shift: 'y' | 'x'
-): { x: number; y: number } {
-  let pos = { ...proposed }
-  for (let i = 0; i < 30; i++) {
-    const overlaps = nodes.some(
-      (n) => Math.abs(n.position.x - pos.x) < NODE_W && Math.abs(n.position.y - pos.y) < NODE_H
-    )
-    if (!overlaps) return pos
-    if (shift === 'y') pos = { ...pos, y: pos.y + NODE_H + 20 }
-    else pos = { ...pos, x: pos.x + NODE_W + 20 }
-  }
-  return pos
-}
 
 const initialSheet: Sheet = {
   id: 'sheet-1',
@@ -291,7 +272,13 @@ export const useMindmapStore = create<MindmapStore>()(
         )
         repositioned.sort((a, b) => (a.data.depth ?? 0) - (b.data.depth ?? 0))
 
-        set({ nodes: repositioned })
+        const normalizedEdges = edges.map((e) =>
+          e.sourceHandle === 'bottom'
+            ? { ...e, sourceHandle: 'right', targetHandle: 'left' }
+            : e
+        )
+
+        set({ nodes: repositioned, edges: normalizedEdges })
       },
 
       updateNodeLabel: (id, label) => {
