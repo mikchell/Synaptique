@@ -79,9 +79,9 @@ function MindmapFlow() {
         fitViewOptions={{ padding: 0.3 }}
         minZoom={0.2}
         maxZoom={2}
-        selectionOnDrag
+        selectionOnDrag={!isMobile}
         selectionMode={SelectionMode.Partial}
-        panOnDrag={[1, 2]}
+        panOnDrag={isMobile ? true : [1, 2]}
         defaultEdgeOptions={{
           type: 'interactive',
           style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.6 },
