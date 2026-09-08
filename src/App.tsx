@@ -1,3 +1,4 @@
+import { Toaster } from 'sonner'
 import { MindmapCanvas } from './features/mindmap/components/MindmapCanvas'
 import { LoginScreen } from './features/auth/LoginScreen'
 import { useAuth } from './features/auth/useAuth'
@@ -7,7 +8,12 @@ function App() {
 
   if (loading) return null
 
-  return user ? <MindmapCanvas /> : <LoginScreen />
+  return (
+    <>
+      {user ? <MindmapCanvas /> : <LoginScreen />}
+      <Toaster position="bottom-right" richColors />
+    </>
+  )
 }
 
 export default App
