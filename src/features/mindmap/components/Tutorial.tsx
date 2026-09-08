@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 
 const TUTORIAL_KEY = 'synaptique_tutorial_done'
 
@@ -32,14 +33,17 @@ const STEPS = [
 ]
 
 export function Tutorial() {
+  const isMobile = useIsMobile()
   const [step, setStep] = useState(0)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    if (!localStorage.getItem(TUTORIAL_KEY)) {
+    if (!isMobile && !localStorage.getItem(TUTORIAL_KEY)) {
       setVisible(true)
     }
-  }, [])
+  }, [isMobile])
+
+  if (isMobile) return null
 
   const handleNext = () => {
     if (step < STEPS.length - 1) {

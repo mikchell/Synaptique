@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { GripVertical, Pin, PinOff } from 'lucide-react'
+import { AlignJustify, GripVertical, Pin, PinOff } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 import { type NodeColor, useMindmapStore } from '../store/mindmapStore'
-import { useRef } from 'react'
 
 const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] = [
   { key: 'purple', label: 'パープル', hex: '#f3e8ff', border: 'rgba(139,92,246,0.5)' },
@@ -13,7 +14,9 @@ const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] =
 ]
 
 export function NodePanel() {
+  const isMobile = useIsMobile()
   const selectedNodeId = useMindmapStore((s) => s.selectedNodeId)
+  const setSelectedNodeId = useMindmapStore((s) => s.setSelectedNodeId)
   const selectedNode = useMindmapStore((s) =>
     s.selectedNodeId ? s.nodes.find((n) => n.id === s.selectedNodeId) ?? null : null
   )
@@ -24,166 +27,182 @@ export function NodePanel() {
   const defaultNodeColor = useMindmapStore((s) => s.defaultNodeColor)
   const setDefaultNodeColor = useMindmapStore((s) => s.setDefaultNodeColor)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [colorExpanded, setColorExpanded] = useState(true)
+
 
   return (
     <AnimatePresence>
       {selectedNodeId && (
-        <motion.div
-          key="node-panel"
-          drag
-          dragMomentum={false}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-          style={{
-            position: 'fixed',
-            right: 24,
-            top: 'calc(50vh - 80px)',
-            background: 'rgba(255, 255, 255, 0.95)',
-            border: '1px solid rgba(0,0,0,0.1)',
-            borderRadius: 18,
-            padding: '20px 16px',
-            width: 160,
-            backdropFilter: 'blur(20px)',
-            zIndex: 100,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-          }}
-        >
-          <div
+        <>
+          {/* モバイル: パネル外タップで閉じるオーバーレイ */}
+          {isMobile && (
+            <div
+              onClick={() => setSelectedNodeId(null)}
+              style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+            />
+          )}
+
+          <motion.div
+            key="node-panel"
+            drag={!isMobile}
+            dragMomentum={false}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              marginBottom: 14,
-              cursor: 'grab',
+              position: 'fixed',
+              right: 24,
+              top: 'calc(50vh - 80px)',
+              background: 'rgba(255, 255, 255, 0.95)',
+              border: '1px solid rgba(0,0,0,0.1)',
+              borderRadius: 18,
+              padding: '20px 16px',
+              width: 160,
+              backdropFilter: 'blur(20px)',
+              zIndex: 100,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
             }}
           >
-            <GripVertical size={13} color="#cbd5e1" />
-            <p
-              style={{
-                color: '#94a3b8',
-                fontSize: 11,
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                margin: 0,
-                flex: 1,
-              }}
-            >
-              ノードカラー
-            </p>
-          </div>
-
-          {/* 選択ノードのカラー変更 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            {COLORS.map((c) => (
-              <button
-                key={c.key}
-                onClick={() => updateNodeColor(selectedNodeId, c.key)}
-                title={c.label}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: c.hex,
-                  border: selectedNodeColor === c.key
-                    ? `2.5px solid ${c.border.replace('0.5)', '1)')}`
-                    : `1.5px solid ${c.border}`,
-                  cursor: 'pointer',
-                  boxShadow: selectedNodeColor === c.key
-                    ? `0 0 0 3px ${c.border}`
-                    : 'none',
-                  transition: 'all 0.15s ease',
-                }}
-              />
-            ))}
-          </div>
-
-          {/* メモ */}
-          <div style={{ marginTop: 16, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
-            <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>
-              メモ
-            </p>
-            <textarea
-              value={selectedNodeMemo}
-              onChange={(e) => {
-                const memo = e.target.value
-                if (!selectedNodeId) return
-                if (debounceRef.current) clearTimeout(debounceRef.current)
-                debounceRef.current = setTimeout(() => {
-                  updateNodeMemo(selectedNodeId, memo)
-                }, 300)
-                // 即時反映のためにstoreを直接更新
-                updateNodeMemo(selectedNodeId, memo)
-              }}
-              placeholder="メモを入力..."
-              rows={4}
-              style={{
-                width: '100%',
-                resize: 'vertical',
-                borderRadius: 10,
-                border: '1.5px solid rgba(0,0,0,0.08)',
-                padding: '8px 10px',
-                fontSize: 12,
-                color: '#334155',
-                background: 'rgba(248,250,252,0.8)',
-                outline: 'none',
-                fontFamily: 'inherit',
-                lineHeight: 1.5,
-                boxSizing: 'border-box',
-              }}
-              onFocus={(e) => { e.target.style.borderColor = 'rgba(139,92,246,0.5)' }}
-              onBlur={(e) => { e.target.style.borderColor = 'rgba(0,0,0,0.08)' }}
-            />
-          </div>
-
-          {/* デフォルトカラー固定 */}
-          <div style={{ marginTop: 16, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
-                固定カラー
-              </p>
-              {defaultNodeColor && (
+            {/* ヘッダー（展開時のみ表示） */}
+            {colorExpanded && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 14, cursor: isMobile ? 'default' : 'grab' }}>
+                {!isMobile && <GripVertical size={13} color="#cbd5e1" />}
+                <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0, flex: 1 }}>
+                  ノードカラー
+                </p>
                 <button
-                  onClick={() => setDefaultNodeColor(null)}
-                  title="固定を解除"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#94a3b8', display: 'flex' }}
-                >
-                  <PinOff size={13} />
-                </button>
-              )}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-              {COLORS.map((c) => (
-                <button
-                  key={c.key}
-                  onClick={() => setDefaultNodeColor(defaultNodeColor === c.key ? null : c.key)}
-                  title={`新規ノードを${c.label}に固定`}
+                  onClick={() => setColorExpanded(false)}
+                  title="カラー選択を隠す"
                   style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: c.hex,
-                    border: defaultNodeColor === c.key
-                      ? `2.5px solid ${c.border.replace('0.5)', '1)')}`
-                      : `1.5px solid ${c.border}`,
-                    cursor: 'pointer',
-                    boxShadow: defaultNodeColor === c.key
-                      ? `0 0 0 3px ${c.border}`
-                      : 'none',
-                    transition: 'all 0.15s ease',
-                    position: 'relative',
+                    background: 'rgba(124,58,237,0.1)', border: 'none', borderRadius: 6,
+                    cursor: 'pointer', padding: '4px 6px', display: 'flex',
+                    color: '#7c3aed', transition: 'all 0.15s ease',
                   }}
                 >
-                  {defaultNodeColor === c.key && (
-                    <Pin size={10} style={{ position: 'absolute', top: 2, right: 2, color: c.border.replace('0.5)', '1)') }} />
-                  )}
+                  <AlignJustify size={15} />
                 </button>
-              ))}
+              </div>
+            )}
+
+            {/* カラー選択（折りたたみ可能） */}
+            <AnimatePresence initial={false}>
+              {colorExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  {/* 選択ノードのカラー変更 */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                    {COLORS.map((c) => (
+                      <button
+                        key={c.key}
+                        onClick={() => updateNodeColor(selectedNodeId, c.key)}
+                        title={c.label}
+                        style={{
+                          width: 36, height: 36, borderRadius: 10, background: c.hex,
+                          border: selectedNodeColor === c.key
+                            ? `2.5px solid ${c.border.replace('0.5)', '1)')}`
+                            : `1.5px solid ${c.border}`,
+                          cursor: 'pointer',
+                          boxShadow: selectedNodeColor === c.key ? `0 0 0 3px ${c.border}` : 'none',
+                          transition: 'all 0.15s ease',
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* デフォルトカラー固定 */}
+                  <div style={{ marginTop: 16, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
+                        固定カラー
+                      </p>
+                      {defaultNodeColor && (
+                        <button
+                          onClick={() => setDefaultNodeColor(null)}
+                          title="固定を解除"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#94a3b8', display: 'flex' }}
+                        >
+                          <PinOff size={13} />
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                      {COLORS.map((c) => (
+                        <button
+                          key={c.key}
+                          onClick={() => setDefaultNodeColor(defaultNodeColor === c.key ? null : c.key)}
+                          title={`新規ノードを${c.label}に固定`}
+                          style={{
+                            width: 36, height: 36, borderRadius: 10, background: c.hex,
+                            border: defaultNodeColor === c.key
+                              ? `2.5px solid ${c.border.replace('0.5)', '1)')}`
+                              : `1.5px solid ${c.border}`,
+                            cursor: 'pointer',
+                            boxShadow: defaultNodeColor === c.key ? `0 0 0 3px ${c.border}` : 'none',
+                            transition: 'all 0.15s ease',
+                            position: 'relative',
+                          }}
+                        >
+                          {defaultNodeColor === c.key && (
+                            <Pin size={10} style={{ position: 'absolute', top: 2, right: 2, color: c.border.replace('0.5)', '1)') }} />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* メモ（常に表示） */}
+            <div style={{ marginTop: colorExpanded ? 16 : 0, borderTop: colorExpanded ? '1px solid rgba(0,0,0,0.06)' : 'none', paddingTop: colorExpanded ? 14 : 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0, flex: 1 }}>
+                  メモ
+                </p>
+                {/* 折りたたみ時のみボタンをメモ横に表示 */}
+                {!colorExpanded && (
+                  <button
+                    onClick={() => setColorExpanded(true)}
+                    title="カラー選択を表示"
+                    style={{
+                      background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: 6,
+                      cursor: 'pointer', padding: '4px 6px', display: 'flex',
+                      color: '#94a3b8', transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <AlignJustify size={15} />
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={selectedNodeMemo}
+                onChange={(e) => {
+                  const memo = e.target.value
+                  if (!selectedNodeId) return
+                  if (debounceRef.current) clearTimeout(debounceRef.current)
+                  debounceRef.current = setTimeout(() => updateNodeMemo(selectedNodeId, memo), 300)
+                  updateNodeMemo(selectedNodeId, memo)
+                }}
+                placeholder="メモを入力..."
+                rows={4}
+                style={{
+                  width: '100%', resize: 'vertical', borderRadius: 10,
+                  border: '1.5px solid rgba(0,0,0,0.08)', padding: '8px 10px',
+                  fontSize: 12, color: '#334155', background: 'rgba(248,250,252,0.8)',
+                  outline: 'none', fontFamily: 'inherit', lineHeight: 1.5, boxSizing: 'border-box',
+                }}
+                onFocus={(e) => { e.target.style.borderColor = 'rgba(139,92,246,0.5)' }}
+                onBlur={(e) => { e.target.style.borderColor = 'rgba(0,0,0,0.08)' }}
+              />
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </>
       )}
     </AnimatePresence>
   )
