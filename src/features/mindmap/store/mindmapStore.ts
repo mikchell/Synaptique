@@ -473,9 +473,46 @@ export const useMindmapStore = create<MindmapStore>()(
 
       deleteNode: (id) => {
         if (id === 'root') return
+        const { nodes, edges } = get()
+
+        const parentEdge = edges.find((e) => e.target === id)
+        const childEdges = edges.filter((e) => e.source === id)
+
+        // 親と子の両方がある場合：再接続して子を左にシフト
+        if (parentEdge && childEdges.length > 0) {
+          const getDescendants = (nodeId: string): string[] => {
+            const children = edges.filter((e) => e.source === nodeId).map((e) => e.target)
+            return [nodeId, ...children.flatMap(getDescendants)]
+          }
+          const toShift = new Set(childEdges.flatMap((e) => getDescendants(e.target)))
+
+          const reconnected = childEdges.map((childEdge) => ({
+            ...childEdge,
+            id: `edge-${parentEdge.source}-${childEdge.target}`,
+            source: parentEdge.source,
+            sourceHandle: parentEdge.sourceHandle ?? 'right',
+          }))
+
+          set({
+            nodes: nodes
+              .filter((n) => n.id !== id)
+              .map((n) =>
+                toShift.has(n.id)
+                  ? { ...n, position: { ...n.position, x: n.position.x - (NODE_W + PADDING) } }
+                  : n
+              ),
+            edges: [
+              ...edges.filter((e) => e.source !== id && e.target !== id),
+              ...reconnected,
+            ],
+            selectedNodeId: null,
+          })
+          return
+        }
+
         set({
-          nodes: get().nodes.filter((n) => n.id !== id),
-          edges: get().edges.filter((e) => e.source !== id && e.target !== id),
+          nodes: nodes.filter((n) => n.id !== id),
+          edges: edges.filter((e) => e.source !== id && e.target !== id),
           selectedNodeId: null,
         })
       },
