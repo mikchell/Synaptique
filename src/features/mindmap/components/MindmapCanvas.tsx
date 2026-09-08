@@ -11,12 +11,14 @@ import { useEffect } from 'react'
 import { useMindmapStore } from '../store/mindmapStore'
 import { Header } from './Header'
 import { MindmapNode } from './MindmapNode'
+import { InteractiveEdge } from './InteractiveEdge'
 import { NodePanel } from './NodePanel'
 import { Toolbar } from './Toolbar'
 import { HelpHint } from './HelpHint'
 import { SheetTabs } from './SheetTabs'
 
 const nodeTypes = { mindmapNode: MindmapNode }
+const edgeTypes = { interactive: InteractiveEdge }
 
 function MindmapFlow() {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setSelectedNodeId, editingNodeId } =
@@ -36,6 +38,7 @@ function MindmapFlow() {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -48,7 +51,7 @@ function MindmapFlow() {
         selectionMode={SelectionMode.Partial}
         panOnDrag={[1, 2]}
         defaultEdgeOptions={{
-          type: 'default',
+          type: 'interactive',
           style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.6 },
         }}
         proOptions={{ hideAttribution: true }}

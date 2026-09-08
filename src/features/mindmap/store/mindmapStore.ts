@@ -42,6 +42,7 @@ interface MindmapStore {
   addChildNode: (parentId: string) => void
   addChildNodeBelow: (parentId: string) => void
   addSiblingNode: (nodeId: string) => void
+  insertNodeBetween: (sourceId: string, targetId: string, edgeId: string, sourceHandle: string, targetHandle: string) => void
   tidyLayout: () => void
   updateNodeLabel: (id: string, label: string) => void
   updateNodeColor: (id: string, color: NodeColor) => void
@@ -130,7 +131,7 @@ export const useMindmapStore = create<MindmapStore>()(
         const edge: Edge = {
           ...connection,
           id: `edge-${connection.source}-${connection.target}`,
-          type: 'default',
+          type: 'interactive',
           animated: false,
           style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 },
         }
@@ -177,7 +178,7 @@ export const useMindmapStore = create<MindmapStore>()(
           target: newId,
           sourceHandle: 'right',
           targetHandle: 'left',
-          type: 'default',
+          type: 'interactive',
           style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 },
         }
 
@@ -229,7 +230,7 @@ export const useMindmapStore = create<MindmapStore>()(
           target: newId,
           sourceHandle: 'bottom',
           targetHandle: 'top',
-          type: 'default',
+          type: 'interactive',
           style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 },
         }
 
@@ -276,7 +277,7 @@ export const useMindmapStore = create<MindmapStore>()(
           target: newId,
           sourceHandle: 'right',
           targetHandle: 'left',
-          type: 'default',
+          type: 'interactive',
           style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 },
         }
 
@@ -284,6 +285,72 @@ export const useMindmapStore = create<MindmapStore>()(
           nodes: [...nodes, newNode],
           edges: [...edges, newEdge],
           selectedNodeId: newId,
+        })
+      },
+
+      insertNodeBetween: (sourceId, targetId, edgeId, sourceHandle, targetHandle) => {
+        const { nodes, edges } = get()
+        const source = nodes.find((n) => n.id === sourceId)
+        const target = nodes.find((n) => n.id === targetId)
+        if (!source || !target) return
+
+        const newId = generateId()
+        const colorIndex = nodes.length % COLORS.length
+
+        // ターゲットとその子孫をH_STEP分右にシフトしてスペースを確保
+        const getDescendants = (nodeId: string): string[] => {
+          const children = edges.filter((e) => e.source === nodeId).map((e) => e.target)
+          return [nodeId, ...children.flatMap(getDescendants)]
+        }
+        const toShift = new Set(getDescendants(targetId))
+
+        const newNode: Node<MindmapNodeData> = {
+          id: newId,
+          type: 'mindmapNode',
+          position: {
+            x: target.position.x,
+            y: target.position.y,
+          },
+          data: {
+            label: 'アイデア',
+            color: COLORS[colorIndex],
+            depth: (source.data.depth ?? 0) + 1,
+          },
+        }
+
+        const shiftedNodes = nodes.map((n) =>
+          toShift.has(n.id)
+            ? { ...n, position: { ...n.position, x: n.position.x + NODE_W + PADDING } }
+            : n
+        )
+
+        const edgeStyle = { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 }
+        const newEdges: Edge[] = [
+          {
+            id: `edge-${sourceId}-${newId}`,
+            source: sourceId,
+            target: newId,
+            sourceHandle,
+            targetHandle: 'left',
+            type: 'interactive',
+            style: edgeStyle,
+          },
+          {
+            id: `edge-${newId}-${targetId}`,
+            source: newId,
+            target: targetId,
+            sourceHandle: 'right',
+            targetHandle,
+            type: 'interactive',
+            style: edgeStyle,
+          },
+        ]
+
+        set({
+          nodes: [...shiftedNodes, newNode],
+          edges: [...edges.filter((e) => e.id !== edgeId), ...newEdges],
+          selectedNodeId: newId,
+          editingNodeId: newId,
         })
       },
 
