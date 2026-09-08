@@ -121,11 +121,34 @@ npm run build
 
 ```
 src/
+├── App.tsx
+├── main.tsx
 ├── features/
-│   ├── auth/           # 認証（ログイン画面・useAuth）
+│   ├── auth/
+│   │   ├── LoginScreen.tsx   # Google ログイン画面
+│   │   └── useAuth.ts        # 認証状態フック
 │   └── mindmap/
-│       ├── components/ # UIコンポーネント（ノード・ツールバー・ダイアログ等）
-│       └── store/      # Zustand ストア（ノード操作・整列ロジック）
+│       ├── components/
+│       │   ├── MindmapCanvas.tsx   # ReactFlow のルートコンポーネント
+│       │   ├── MindmapNode.tsx     # カスタムノード
+│       │   ├── InteractiveEdge.tsx # カスタムエッジ（中間ノード挿入ボタン付き）
+│       │   ├── NodePanel.tsx       # ノードカラー変更パネル
+│       │   ├── Toolbar.tsx         # ズーム・整列・リセットツールバー
+│       │   ├── Header.tsx          # 上部ヘッダー
+│       │   ├── SheetTabs.tsx       # シート切り替えタブ
+│       │   ├── HelpHint.tsx        # キーボードショートカットヒント
+│       │   └── ConfirmDialog.tsx   # 確認ダイアログ
+│       ├── hooks/
+│       │   └── useSheetsSync.ts    # Supabase とのリアルタイム同期
+│       └── store/
+│           └── mindmapStore.ts     # Zustand ストア（全ロジック・整列アルゴリズム）
 └── lib/
-    └── supabase.ts     # Supabase クライアント
+    ├── supabase.ts     # Supabase クライアント初期化
+    └── sheetsApi.ts    # sheets テーブルの CRUD 関数
 ```
+
+---
+
+## データ構造
+
+[docs/data-structure.md](docs/data-structure.md) を参照してください。
