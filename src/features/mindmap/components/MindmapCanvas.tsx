@@ -35,11 +35,11 @@ function MindmapFlow() {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onPaneClick={() => setSelectedNodeId(null)}
-        nodeTypes={nodeTypes}
         fitView
         fitViewOptions={{ padding: 0.3 }}
         minZoom={0.2}

@@ -291,7 +291,7 @@ export const useMindmapStore = create<MindmapStore>()(
         const { nodes, edges } = get()
 
         const NODE_H = 60
-        const V_GAP = 24
+        const V_GAP = 80
         const H_STEP = 240
 
         const childrenOf = (id: string) =>
