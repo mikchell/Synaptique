@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
+import { toast } from 'sonner'
 import { useMindmapStore } from '../store/mindmapStore'
 import {
   fetchSheets,
@@ -46,11 +47,11 @@ export function useSheetsSync(user: User | null) {
             s.id === currentSheetId ? { ...s, nodes: n, edges: e } : s
           )
           prevSheetIdsRef.current = toSave.map((s) => s.id)
-          upsertSheetsBatch(toSave, user.id).catch(console.error)
+          upsertSheetsBatch(toSave, user.id).catch(() => toast.error('シートの保存に失敗しました'))
         }
         initializedRef.current = true
       })
-      .catch(console.error)
+      .catch(() => toast.error('シートの読み込みに失敗しました'))
   }, [user?.id])
 
   // ノード・エッジ変更時：現在のシートをDebounce保存
@@ -64,7 +65,7 @@ export function useSheetsSync(user: User | null) {
     const userId = userIdRef.current
     if (nodeTimerRef.current) clearTimeout(nodeTimerRef.current)
     nodeTimerRef.current = setTimeout(() => {
-      upsertSheet({ ...currentSheet, nodes, edges }, userId).catch(console.error)
+      upsertSheet({ ...currentSheet, nodes, edges }, userId).catch(() => toast.error('変更の保存に失敗しました'))
     }, NODE_DEBOUNCE_MS)
 
     return () => {
@@ -84,7 +85,7 @@ export function useSheetsSync(user: User | null) {
 
     // 削除されたシートをDBから削除
     const deletedIds = prevIds.filter((id) => !currentIds.includes(id))
-    deletedIds.forEach((id) => deleteSheetFromDb(id).catch(console.error))
+    deletedIds.forEach((id) => deleteSheetFromDb(id).catch(() => toast.error('シートの削除に失敗しました')))
 
     // 追加・更新されたシートをDebounceで保存
     if (sheetTimerRef.current) clearTimeout(sheetTimerRef.current)
@@ -92,7 +93,7 @@ export function useSheetsSync(user: User | null) {
       const updated = sheets.map((s) =>
         s.id === currentSheetId ? { ...s, nodes: n, edges: e } : s
       )
-      upsertSheetsBatch(updated, userId).catch(console.error)
+      upsertSheetsBatch(updated, userId).catch(() => toast.error('シートの保存に失敗しました'))
     }, SHEET_DEBOUNCE_MS)
 
     prevSheetIdsRef.current = currentIds
