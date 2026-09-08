@@ -7,8 +7,11 @@ import {
   SelectionMode,
   useReactFlow,
 } from '@xyflow/react'
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useMindmapStore } from '../store/mindmapStore'
+import { useAuth } from '../../auth/useAuth'
+import { useSheetsSync } from '../hooks/useSheetsSync'
 import { Header } from './Header'
 import { MindmapNode } from './MindmapNode'
 import { InteractiveEdge } from './InteractiveEdge'
@@ -20,17 +23,43 @@ import { SheetTabs } from './SheetTabs'
 const nodeTypes = { mindmapNode: MindmapNode }
 const edgeTypes = { interactive: InteractiveEdge, default: InteractiveEdge }
 
+const MINIMAP_COLOR_MAP: Record<string, string> = {
+  purple: '#7c3aed',
+  blue: '#2563eb',
+  cyan: '#0891b2',
+  green: '#16a34a',
+  pink: '#db2777',
+  orange: '#ea580c',
+}
+const getMinimapNodeColor = (node: { data: unknown }) =>
+  MINIMAP_COLOR_MAP[(node.data as { color: string }).color] ?? '#7c3aed'
+
 function MindmapFlow() {
+  const { user } = useAuth()
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setSelectedNodeId, editingNodeId } =
-    useMindmapStore()
+    useMindmapStore(
+      useShallow((s) => ({
+        nodes: s.nodes,
+        edges: s.edges,
+        onNodesChange: s.onNodesChange,
+        onEdgesChange: s.onEdgesChange,
+        onConnect: s.onConnect,
+        setSelectedNodeId: s.setSelectedNodeId,
+        editingNodeId: s.editingNodeId,
+      }))
+    )
   const { setCenter, getZoom } = useReactFlow()
+
+  useSheetsSync(user ?? null)
+
+  const handlePaneClick = useCallback(() => setSelectedNodeId(null), [setSelectedNodeId])
 
   useEffect(() => {
     if (!editingNodeId) return
     const node = nodes.find((n) => n.id === editingNodeId)
     if (!node) return
     setCenter(node.position.x, node.position.y, { zoom: getZoom(), duration: 300 })
-  }, [editingNodeId])
+  }, [editingNodeId, nodes, setCenter, getZoom])
 
   return (
     <div style={{ width: '100vw', height: '100vh', paddingTop: 56, paddingBottom: 40 }}>
@@ -42,7 +71,7 @@ function MindmapFlow() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onPaneClick={() => setSelectedNodeId(null)}
+        onPaneClick={handlePaneClick}
         fitView
         fitViewOptions={{ padding: 0.3 }}
         minZoom={0.2}
@@ -63,17 +92,7 @@ function MindmapFlow() {
           color="rgba(148, 163, 184, 0.6)"
         />
         <MiniMap
-          nodeColor={(node) => {
-            const colorMap: Record<string, string> = {
-              purple: '#7c3aed',
-              blue: '#2563eb',
-              cyan: '#0891b2',
-              green: '#16a34a',
-              pink: '#db2777',
-              orange: '#ea580c',
-            }
-            return colorMap[(node.data as { color: string }).color] ?? '#7c3aed'
-          }}
+          nodeColor={getMinimapNodeColor}
           maskColor="rgba(124,58,237,0.06)"
           style={{ bottom: 32, right: 32 }}
         />

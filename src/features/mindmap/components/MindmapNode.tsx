@@ -1,7 +1,8 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { type MindmapNodeData, type NodeColor, useMindmapStore } from '../store/mindmapStore'
 
 const COLOR_MAP: Record<NodeColor, { bg: string; border: string; glow: string; text: string }> = {
@@ -38,8 +39,18 @@ const ADD_BTN: React.CSSProperties = {
   padding: 0,
 }
 
-export function MindmapNode({ id, data, selected }: NodeProps<Node<MindmapNodeData>>) {
-  const { addChildNode, addChildNodeBelow, updateNodeLabel, deleteNode, setSelectedNodeId, editingNodeId, setEditingNodeId } = useMindmapStore()
+function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNodeData>>) {
+  const { addChildNode, addChildNodeBelow, updateNodeLabel, deleteNode, setSelectedNodeId, editingNodeId, setEditingNodeId } = useMindmapStore(
+    useShallow((s) => ({
+      addChildNode: s.addChildNode,
+      addChildNodeBelow: s.addChildNodeBelow,
+      updateNodeLabel: s.updateNodeLabel,
+      deleteNode: s.deleteNode,
+      setSelectedNodeId: s.setSelectedNodeId,
+      editingNodeId: s.editingNodeId,
+      setEditingNodeId: s.setEditingNodeId,
+    }))
+  )
   const [editing, setEditing] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [draft, setDraft] = useState(data.label)
@@ -207,3 +218,5 @@ export function MindmapNode({ id, data, selected }: NodeProps<Node<MindmapNodeDa
     </motion.div>
   )
 }
+
+export const MindmapNode = memo(MindmapNodeComponent)

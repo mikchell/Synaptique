@@ -12,12 +12,17 @@ const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] =
 ]
 
 export function NodePanel() {
-  const { nodes, selectedNodeId, updateNodeColor, defaultNodeColor, setDefaultNodeColor } = useMindmapStore()
-  const selectedNode = nodes.find((n) => n.id === selectedNodeId)
+  const selectedNodeId = useMindmapStore((s) => s.selectedNodeId)
+  const selectedNodeColor = useMindmapStore((s) =>
+    s.selectedNodeId ? (s.nodes.find((n) => n.id === s.selectedNodeId)?.data.color ?? null) : null
+  )
+  const updateNodeColor = useMindmapStore((s) => s.updateNodeColor)
+  const defaultNodeColor = useMindmapStore((s) => s.defaultNodeColor)
+  const setDefaultNodeColor = useMindmapStore((s) => s.setDefaultNodeColor)
 
   return (
     <AnimatePresence>
-      {selectedNode && (
+      {selectedNodeId && (
         <motion.div
           key="node-panel"
           drag
@@ -70,18 +75,18 @@ export function NodePanel() {
             {COLORS.map((c) => (
               <button
                 key={c.key}
-                onClick={() => updateNodeColor(selectedNode.id, c.key)}
+                onClick={() => updateNodeColor(selectedNodeId, c.key)}
                 title={c.label}
                 style={{
                   width: 36,
                   height: 36,
                   borderRadius: 10,
                   background: c.hex,
-                  border: selectedNode.data.color === c.key
+                  border: selectedNodeColor === c.key
                     ? `2.5px solid ${c.border.replace('0.5)', '1)')}`
                     : `1.5px solid ${c.border}`,
                   cursor: 'pointer',
-                  boxShadow: selectedNode.data.color === c.key
+                  boxShadow: selectedNodeColor === c.key
                     ? `0 0 0 3px ${c.border}`
                     : 'none',
                   transition: 'all 0.15s ease',

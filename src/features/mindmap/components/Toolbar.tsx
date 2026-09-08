@@ -7,11 +7,12 @@ import { ConfirmDialog } from './ConfirmDialog'
 
 export function Toolbar() {
   const { zoomIn, zoomOut, fitView } = useReactFlow()
-  const { nodes, resetMindmap, tidyLayout, tidySelectedLayout } = useMindmapStore()
+  const selectedCount = useMindmapStore((s) => s.nodes.filter((n) => n.selected).length)
+  const resetMindmap = useMindmapStore((s) => s.resetMindmap)
+  const tidyLayout = useMindmapStore((s) => s.tidyLayout)
+  const tidySelectedLayout = useMindmapStore((s) => s.tidySelectedLayout)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [tidyConfirmOpen, setTidyConfirmOpen] = useState(false)
-
-  const selectedCount = nodes.filter((n) => n.selected).length
   const hasSelection = selectedCount >= 2
 
   const handleTidyConfirm = () => {

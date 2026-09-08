@@ -1,9 +1,9 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getBezierPath } from '@xyflow/react'
 import { Plus } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { memo, useRef, useState } from 'react'
 import { useMindmapStore } from '../store/mindmapStore'
 
-export function InteractiveEdge({
+function InteractiveEdgeComponent({
   id,
   source,
   target,
@@ -19,7 +19,7 @@ export function InteractiveEdge({
 }: EdgeProps) {
   const [hovered, setHovered] = useState(false)
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const { insertNodeBetween } = useMindmapStore()
+  const insertNodeBetween = useMindmapStore((s) => s.insertNodeBetween)
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -102,3 +102,5 @@ export function InteractiveEdge({
     </>
   )
 }
+
+export const InteractiveEdge = memo(InteractiveEdgeComponent)
