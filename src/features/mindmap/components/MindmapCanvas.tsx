@@ -12,6 +12,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useMindmapStore } from '../store/mindmapStore'
 import { useAuth } from '../../auth/useAuth'
 import { useSheetsSync } from '../hooks/useSheetsSync'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 import { Header } from './Header'
 import { MindmapNode } from './MindmapNode'
 import { InteractiveEdge } from './InteractiveEdge'
@@ -50,6 +51,7 @@ function MindmapFlow() {
       }))
     )
   const { setCenter, getZoom } = useReactFlow()
+  const isMobile = useIsMobile()
 
   useSheetsSync(user ?? null)
 
@@ -92,11 +94,13 @@ function MindmapFlow() {
           size={1.5}
           color="rgba(148, 163, 184, 0.6)"
         />
-        <MiniMap
-          nodeColor={getMinimapNodeColor}
-          maskColor="rgba(124,58,237,0.06)"
-          style={{ bottom: 32, right: 32 }}
-        />
+        {!isMobile && (
+          <MiniMap
+            nodeColor={getMinimapNodeColor}
+            maskColor="rgba(124,58,237,0.06)"
+            style={{ bottom: 32, right: 32 }}
+          />
+        )}
       </ReactFlow>
       <Header />
       <Toolbar />
