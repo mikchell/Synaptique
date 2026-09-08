@@ -9,9 +9,11 @@ export function Toolbar() {
   const { zoomIn, zoomOut, fitView } = useReactFlow()
   const { resetMindmap, tidyLayout } = useMindmapStore()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [tidyConfirmOpen, setTidyConfirmOpen] = useState(false)
 
-  const handleTidy = () => {
+  const handleTidyConfirm = () => {
     tidyLayout()
+    setTidyConfirmOpen(false)
     setTimeout(() => fitView({ padding: 0.3, duration: 500 }), 50)
   }
 
@@ -128,7 +130,7 @@ export function Toolbar() {
         </button>
         <button
           style={buttonStyle}
-          onClick={handleTidy}
+          onClick={() => setTidyConfirmOpen(true)}
           onMouseEnter={(e) => {
             ;(e.currentTarget as HTMLButtonElement).style.background =
               'rgba(124, 58, 237, 0.2)'
@@ -183,6 +185,14 @@ export function Toolbar() {
       </div>
     </motion.div>
 
+    <ConfirmDialog
+      open={tidyConfirmOpen}
+      title="レイアウトを整頓"
+      description="ノードの位置が自動で整列されます。手動で調整した配置はリセットされます。"
+      confirmLabel="整頓する"
+      onConfirm={handleTidyConfirm}
+      onCancel={() => setTidyConfirmOpen(false)}
+    />
     <ConfirmDialog
       open={confirmOpen}
       title="マインドマップをリセット"
