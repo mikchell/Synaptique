@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Maximize2, RotateCcw, ZoomIn, ZoomOut, LayoutDashboard } from 'lucide-react'
+import { Maximize2, RotateCcw, ZoomIn, ZoomOut, LayoutDashboard, LayoutGrid } from 'lucide-react'
 import { useReactFlow } from '@xyflow/react'
 import { useState } from 'react'
 import { useMindmapStore } from '../store/mindmapStore'
@@ -7,14 +7,22 @@ import { ConfirmDialog } from './ConfirmDialog'
 
 export function Toolbar() {
   const { zoomIn, zoomOut, fitView } = useReactFlow()
-  const { resetMindmap, tidyLayout } = useMindmapStore()
+  const { nodes, resetMindmap, tidyLayout, tidySelectedLayout } = useMindmapStore()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [tidyConfirmOpen, setTidyConfirmOpen] = useState(false)
+  const [tidySelConfirmOpen, setTidySelConfirmOpen] = useState(false)
+
+  const selectedCount = nodes.filter((n) => n.selected).length
 
   const handleTidyConfirm = () => {
     tidyLayout()
     setTidyConfirmOpen(false)
     setTimeout(() => fitView({ padding: 0.3, duration: 500 }), 50)
+  }
+
+  const handleTidySelConfirm = () => {
+    tidySelectedLayout()
+    setTidySelConfirmOpen(false)
   }
 
   const handleReset = () => {
@@ -149,6 +157,29 @@ export function Toolbar() {
         >
           <LayoutDashboard size={16} />
         </button>
+        {selectedCount >= 2 && (
+          <button
+            style={buttonStyle}
+            onClick={() => setTidySelConfirmOpen(true)}
+            onMouseEnter={(e) => {
+              ;(e.currentTarget as HTMLButtonElement).style.background =
+                'rgba(124, 58, 237, 0.2)'
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#a78bfa'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor =
+                'rgba(124, 58, 237, 0.4)'
+            }}
+            onMouseLeave={(e) => {
+              ;(e.currentTarget as HTMLButtonElement).style.background =
+                'rgba(255,255,255,0.9)'
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#64748b'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor =
+                'rgba(0,0,0,0.1)'
+            }}
+            title={`選択範囲を整頓 (${selectedCount}個)`}
+          >
+            <LayoutGrid size={16} />
+          </button>
+        )}
       </div>
 
       {/* リセット */}
@@ -185,6 +216,14 @@ export function Toolbar() {
       </div>
     </motion.div>
 
+    <ConfirmDialog
+      open={tidySelConfirmOpen}
+      title="選択範囲を整頓"
+      description={`選択中の${selectedCount}個のノードのみ整列されます。`}
+      confirmLabel="整頓する"
+      onConfirm={handleTidySelConfirm}
+      onCancel={() => setTidySelConfirmOpen(false)}
+    />
     <ConfirmDialog
       open={tidyConfirmOpen}
       title="レイアウトを整頓"

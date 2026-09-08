@@ -44,6 +44,7 @@ interface MindmapStore {
   addSiblingNode: (nodeId: string) => void
   insertNodeBetween: (sourceId: string, targetId: string, edgeId: string, sourceHandle: string, targetHandle: string) => void
   tidyLayout: () => void
+  tidySelectedLayout: () => void
   updateNodeLabel: (id: string, label: string) => void
   updateNodeColor: (id: string, color: NodeColor) => void
   deleteNode: (id: string) => void
@@ -401,6 +402,57 @@ export const useMindmapStore = create<MindmapStore>()(
         )
 
         set({ nodes: repositioned, edges: normalizedEdges })
+      },
+
+      tidySelectedLayout: () => {
+        const { nodes, edges } = get()
+        const selectedNodes = nodes.filter((n) => n.selected)
+        if (selectedNodes.length <= 1) return
+
+        const selectedIds = new Set(selectedNodes.map((n) => n.id))
+        const selectedEdges = edges.filter(
+          (e) => selectedIds.has(e.source) && selectedIds.has(e.target)
+        )
+
+        // 選択内に親を持たないノードをサブルートとする
+        const hasParentInSelection = new Set(selectedEdges.map((e) => e.target))
+        const subRoots = selectedNodes.filter((n) => !hasParentInSelection.has(n.id))
+
+        const NODE_H_S = 60
+        const V_GAP_S = 80
+        const H_STEP_S = 240
+
+        const childrenOf = (id: string) =>
+          selectedEdges.filter((e) => e.source === id).map((e) => e.target)
+
+        const subtreeHeight = (id: string): number => {
+          const children = childrenOf(id)
+          if (children.length === 0) return NODE_H_S
+          return children.reduce((sum, c) => sum + subtreeHeight(c), 0) + (children.length - 1) * V_GAP_S
+        }
+
+        const positions: Record<string, { x: number; y: number }> = {}
+
+        const layout = (id: string, y: number, depth: number, baseX: number) => {
+          positions[id] = { x: baseX + depth * H_STEP_S, y }
+          const children = childrenOf(id)
+          const totalH =
+            children.reduce((s, c) => s + subtreeHeight(c), 0) + (children.length - 1) * V_GAP_S
+          let curY = y - totalH / 2
+          for (const c of children) {
+            const h = subtreeHeight(c)
+            layout(c, curY + h / 2, depth + 1, baseX)
+            curY += h + V_GAP_S
+          }
+        }
+
+        for (const subRoot of subRoots) {
+          layout(subRoot.id, subRoot.position.y, 0, subRoot.position.x)
+        }
+
+        set({
+          nodes: nodes.map((n) => (positions[n.id] ? { ...n, position: positions[n.id] } : n)),
+        })
       },
 
       updateNodeLabel: (id, label) => {
