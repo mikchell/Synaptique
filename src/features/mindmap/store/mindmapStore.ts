@@ -158,7 +158,8 @@ export const useMindmapStore = create<MindmapStore>()(
             ? parent.position.y
             : existingChildren[existingChildren.length - 1].position.y + NODE_H + PADDING
 
-        const colorIndex = nodes.length % COLORS.length\n        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
+        const colorIndex = nodes.length % COLORS.length
+        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
         const newId = generateId()
         const parentDepth = parent.data.depth ?? 0
 
@@ -210,7 +211,8 @@ export const useMindmapStore = create<MindmapStore>()(
             ? parent.position.y + NODE_H + PADDING
             : existingBelow[existingBelow.length - 1].position.y + NODE_H + PADDING
 
-        const colorIndex = nodes.length % COLORS.length\n        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
+        const colorIndex = nodes.length % COLORS.length
+        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
         const newId = generateId()
         const parentDepth = parent.data.depth ?? 0
 
@@ -257,7 +259,8 @@ export const useMindmapStore = create<MindmapStore>()(
         const currentNode = nodes.find((n) => n.id === nodeId)
         if (!parent || !currentNode) return
 
-        const colorIndex = nodes.length % COLORS.length\n        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
+        const colorIndex = nodes.length % COLORS.length
+        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
         const newId = generateId()
         const parentDepth = parent.data.depth ?? 0
 
@@ -299,7 +302,8 @@ export const useMindmapStore = create<MindmapStore>()(
         if (!source || !target) return
 
         const newId = generateId()
-        const colorIndex = nodes.length % COLORS.length\n        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
+        const colorIndex = nodes.length % COLORS.length
+        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
 
         // ターゲットとその子孫をH_STEP分右にシフトしてスペースを確保
         const getDescendants = (nodeId: string): string[] => {
