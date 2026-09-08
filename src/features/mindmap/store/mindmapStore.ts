@@ -58,6 +58,7 @@ interface MindmapStore {
   deleteSheet: (id: string) => void
   renameSheet: (id: string, name: string) => void
   switchSheet: (id: string) => void
+  loadSheets: (sheets: Sheet[]) => void
 }
 
 const makeInitialNodes = (): Node<MindmapNodeData>[] => [
@@ -71,7 +72,7 @@ const makeInitialNodes = (): Node<MindmapNodeData>[] => [
 
 let nodeIdCounter = 1
 const generateId = () => `node-${Date.now()}-${nodeIdCounter++}`
-const generateSheetId = () => `sheet-${Date.now()}`
+const generateSheetId = () => crypto.randomUUID()
 
 const COLORS: NodeColor[] = ['purple', 'blue', 'cyan', 'green', 'pink', 'orange']
 
@@ -106,7 +107,7 @@ function avoidCollision(
 
 
 const initialSheet: Sheet = {
-  id: 'sheet-1',
+  id: crypto.randomUUID(),
   name: 'シート1',
   nodes: makeInitialNodes(),
   edges: [],
@@ -593,6 +594,18 @@ export const useMindmapStore = create<MindmapStore>()(
           currentSheetId: id,
           nodes: target.nodes,
           edges: target.edges,
+          selectedNodeId: null,
+        })
+      },
+
+      loadSheets: (sheets) => {
+        if (sheets.length === 0) return
+        const first = sheets[0]
+        set({
+          sheets,
+          currentSheetId: first.id,
+          nodes: first.nodes,
+          edges: first.edges,
           selectedNodeId: null,
         })
       },
