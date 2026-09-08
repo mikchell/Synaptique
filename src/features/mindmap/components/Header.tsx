@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { LogOut, Save } from 'lucide-react'
 import { useAuth } from '../../auth/useAuth'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 
 function SynaptiqueIcon() {
   return (
@@ -31,6 +32,7 @@ function SynaptiqueIcon() {
 
 export function Header() {
   const { user, signOut } = useAuth()
+  const isMobile = useIsMobile()
 
   return (
     <motion.header
@@ -46,7 +48,7 @@ export function Header() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 24px',
+        padding: isMobile ? '0 16px' : '0 24px',
         background: 'rgba(255, 255, 255, 0.9)',
         borderBottom: '1px solid rgba(0,0,0,0.08)',
         backdropFilter: 'blur(20px)',
@@ -54,11 +56,11 @@ export function Header() {
       }}
     >
       {/* ロゴ */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <SynaptiqueIcon />
         <span
           style={{
-            fontSize: 16,
+            fontSize: isMobile ? 13 : 16,
             fontWeight: 700,
             background: 'linear-gradient(135deg, #7c3aed, #2563eb)',
             WebkitBackgroundClip: 'text',
@@ -70,14 +72,14 @@ export function Header() {
       </div>
 
       {/* 右側 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Save size={13} color="#22c55e" />
-          <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 500 }}>自動保存済み</span>
+          <span style={{ color: '#22c55e', fontSize: isMobile ? 11 : 12, fontWeight: 500 }}>自動保存済み</span>
         </div>
 
         {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10 }}>
             {user.user_metadata?.avatar_url && (
               <img
                 src={user.user_metadata.avatar_url}
@@ -98,7 +100,7 @@ export function Header() {
                 padding: '4px 10px',
                 cursor: 'pointer',
                 color: '#64748b',
-                fontSize: 12,
+                fontSize: isMobile ? 11 : 12,
                 fontWeight: 500,
               }}
             >
