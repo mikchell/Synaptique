@@ -53,12 +53,11 @@ export async function fetchSheets(): Promise<Sheet[]> {
   }))
 }
 
-// 単一シートをupsert（userId を呼び出し元から受け取る）
-export async function upsertSheet(sheet: Sheet, userId: string): Promise<void> {
+// 単一シートをupsert（user_idはDBトリガーでauth.uid()を自動セット）
+export async function upsertSheet(sheet: Sheet): Promise<void> {
   const { error } = await supabase.from('sheets').upsert(
     {
       id: sheet.id,
-      user_id: userId,
       name: sheet.name,
       data: { nodes: sheet.nodes, edges: sheet.edges },
     },
@@ -68,14 +67,11 @@ export async function upsertSheet(sheet: Sheet, userId: string): Promise<void> {
 }
 
 // 複数シートをバッチupsert（5件ずつ並列処理）
-export async function upsertSheetsBatch(
-  sheets: Sheet[],
-  userId: string
-): Promise<void> {
+export async function upsertSheetsBatch(sheets: Sheet[]): Promise<void> {
   const BATCH_SIZE = 5
   for (let i = 0; i < sheets.length; i += BATCH_SIZE) {
     const batch = sheets.slice(i, i + BATCH_SIZE)
-    await Promise.all(batch.map((s) => upsertSheet(s, userId)))
+    await Promise.all(batch.map((s) => upsertSheet(s)))
   }
 }
 
