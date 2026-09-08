@@ -18,6 +18,11 @@
 
 ---
 
+---
+## 画面例
+<img width="1716" height="967" alt="image" src="https://github.com/user-attachments/assets/7d9eb2a8-4e86-4aae-a33d-79fe4612c1ef" />
+
+---
 ## 主な機能
 
 ### 自動整列（Tidy Layout）
