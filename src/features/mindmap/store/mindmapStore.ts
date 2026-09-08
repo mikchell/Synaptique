@@ -34,6 +34,7 @@ interface MindmapStore {
   edges: Edge[]
   selectedNodeId: string | null
   editingNodeId: string | null
+  defaultNodeColor: NodeColor | null
 
   onNodesChange: (changes: NodeChange[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
@@ -50,6 +51,7 @@ interface MindmapStore {
   deleteNode: (id: string) => void
   setSelectedNodeId: (id: string | null) => void
   setEditingNodeId: (id: string | null) => void
+  setDefaultNodeColor: (color: NodeColor | null) => void
   resetMindmap: () => void
 
   addSheet: () => void
@@ -119,6 +121,7 @@ export const useMindmapStore = create<MindmapStore>()(
       edges: initialSheet.edges,
       selectedNodeId: null,
       editingNodeId: null,
+      defaultNodeColor: null,
 
       onNodesChange: (changes) => {
         set({ nodes: applyNodeChanges(changes, get().nodes) as Node<MindmapNodeData>[] })
@@ -155,7 +158,7 @@ export const useMindmapStore = create<MindmapStore>()(
             ? parent.position.y
             : existingChildren[existingChildren.length - 1].position.y + NODE_H + PADDING
 
-        const colorIndex = nodes.length % COLORS.length
+        const colorIndex = nodes.length % COLORS.length\n        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
         const newId = generateId()
         const parentDepth = parent.data.depth ?? 0
 
@@ -170,7 +173,7 @@ export const useMindmapStore = create<MindmapStore>()(
           id: newId,
           type: 'mindmapNode',
           position,
-          data: { label: 'アイデア', color: COLORS[colorIndex], depth: parentDepth + 1 },
+          data: { label: 'アイデア', color: nodeColor, depth: parentDepth + 1 },
         }
 
         const newEdge: Edge = {
@@ -207,7 +210,7 @@ export const useMindmapStore = create<MindmapStore>()(
             ? parent.position.y + NODE_H + PADDING
             : existingBelow[existingBelow.length - 1].position.y + NODE_H + PADDING
 
-        const colorIndex = nodes.length % COLORS.length
+        const colorIndex = nodes.length % COLORS.length\n        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
         const newId = generateId()
         const parentDepth = parent.data.depth ?? 0
 
@@ -222,7 +225,7 @@ export const useMindmapStore = create<MindmapStore>()(
           id: newId,
           type: 'mindmapNode',
           position,
-          data: { label: 'アイデア', color: COLORS[colorIndex], depth: parentDepth + 1 },
+          data: { label: 'アイデア', color: nodeColor, depth: parentDepth + 1 },
         }
 
         const newEdge: Edge = {
@@ -254,7 +257,7 @@ export const useMindmapStore = create<MindmapStore>()(
         const currentNode = nodes.find((n) => n.id === nodeId)
         if (!parent || !currentNode) return
 
-        const colorIndex = nodes.length % COLORS.length
+        const colorIndex = nodes.length % COLORS.length\n        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
         const newId = generateId()
         const parentDepth = parent.data.depth ?? 0
 
@@ -269,7 +272,7 @@ export const useMindmapStore = create<MindmapStore>()(
           id: newId,
           type: 'mindmapNode',
           position,
-          data: { label: 'アイデア', color: COLORS[colorIndex], depth: parentDepth + 1 },
+          data: { label: 'アイデア', color: nodeColor, depth: parentDepth + 1 },
         }
 
         const newEdge: Edge = {
@@ -296,7 +299,7 @@ export const useMindmapStore = create<MindmapStore>()(
         if (!source || !target) return
 
         const newId = generateId()
-        const colorIndex = nodes.length % COLORS.length
+        const colorIndex = nodes.length % COLORS.length\n        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
 
         // ターゲットとその子孫をH_STEP分右にシフトしてスペースを確保
         const getDescendants = (nodeId: string): string[] => {
@@ -314,7 +317,7 @@ export const useMindmapStore = create<MindmapStore>()(
           },
           data: {
             label: 'アイデア',
-            color: COLORS[colorIndex],
+            color: nodeColor,
             depth: (source.data.depth ?? 0) + 1,
           },
         }
@@ -521,6 +524,8 @@ export const useMindmapStore = create<MindmapStore>()(
 
       setEditingNodeId: (id) => set({ editingNodeId: id }),
 
+      setDefaultNodeColor: (color) => set({ defaultNodeColor: color }),
+
       resetMindmap: () => {
         const fresh = makeInitialNodes()
         set({ nodes: fresh, edges: [], selectedNodeId: null })
@@ -597,6 +602,7 @@ export const useMindmapStore = create<MindmapStore>()(
             : s
         ),
         currentSheetId: state.currentSheetId,
+        defaultNodeColor: state.defaultNodeColor,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return
