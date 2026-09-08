@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { GripVertical } from 'lucide-react'
+import { GripVertical, Pin, PinOff } from 'lucide-react'
 import { type NodeColor, useMindmapStore } from '../store/mindmapStore'
 
 const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] = [
@@ -12,7 +12,7 @@ const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] =
 ]
 
 export function NodePanel() {
-  const { nodes, selectedNodeId, updateNodeColor } = useMindmapStore()
+  const { nodes, selectedNodeId, updateNodeColor, defaultNodeColor, setDefaultNodeColor } = useMindmapStore()
   const selectedNode = nodes.find((n) => n.id === selectedNodeId)
 
   return (
@@ -58,18 +58,15 @@ export function NodePanel() {
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
                 margin: 0,
+                flex: 1,
               }}
             >
               ノードカラー
             </p>
           </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
-              gap: 8,
-            }}
-          >
+
+          {/* 選択ノードのカラー変更 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
             {COLORS.map((c) => (
               <button
                 key={c.key}
@@ -91,6 +88,52 @@ export function NodePanel() {
                 }}
               />
             ))}
+          </div>
+
+          {/* デフォルトカラー固定 */}
+          <div style={{ marginTop: 16, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
+                固定カラー
+              </p>
+              {defaultNodeColor && (
+                <button
+                  onClick={() => setDefaultNodeColor(null)}
+                  title="固定を解除"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#94a3b8', display: 'flex' }}
+                >
+                  <PinOff size={13} />
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              {COLORS.map((c) => (
+                <button
+                  key={c.key}
+                  onClick={() => setDefaultNodeColor(defaultNodeColor === c.key ? null : c.key)}
+                  title={`新規ノードを${c.label}に固定`}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: c.hex,
+                    border: defaultNodeColor === c.key
+                      ? `2.5px solid ${c.border.replace('0.5)', '1)')}`
+                      : `1.5px solid ${c.border}`,
+                    cursor: 'pointer',
+                    boxShadow: defaultNodeColor === c.key
+                      ? `0 0 0 3px ${c.border}`
+                      : 'none',
+                    transition: 'all 0.15s ease',
+                    position: 'relative',
+                  }}
+                >
+                  {defaultNodeColor === c.key && (
+                    <Pin size={10} style={{ position: 'absolute', top: 2, right: 2, color: c.border.replace('0.5)', '1)') }} />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </motion.div>
       )}
