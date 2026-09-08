@@ -17,6 +17,7 @@ begin
 end;
 $$ language plpgsql;
 
+drop trigger if exists sheets_updated_at on sheets;
 create trigger sheets_updated_at
   before update on sheets
   for each row execute function update_updated_at();
