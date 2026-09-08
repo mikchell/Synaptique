@@ -3,7 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
 import { useMindmapStore } from '../mindmap/store/mindmapStore'
 
-const APP_URL = import.meta.env.VITE_APP_URL ?? 'https://synaptique-dun.vercel.app'
+const APP_URL = import.meta.env.VITE_APP_URL ?? window.location.origin
 const STORAGE_KEY = 'ore-no-mindmap-storage'
 
 export function useAuth() {

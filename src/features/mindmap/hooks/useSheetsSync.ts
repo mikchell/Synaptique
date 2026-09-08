@@ -22,18 +22,14 @@ export function useSheetsSync(user: User | null) {
   const prevSheetIdsRef = useRef<string[]>([])
   const nodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sheetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const userIdRef = useRef<string | null>(null)
 
   // ログイン時にSupabaseからシートを読み込む
   useEffect(() => {
     if (!user) {
       initializedRef.current = false
       prevSheetIdsRef.current = []
-      userIdRef.current = null
       return
     }
-
-    userIdRef.current = user.id
 
     fetchSheets()
       .then((fetched) => {
@@ -47,7 +43,7 @@ export function useSheetsSync(user: User | null) {
             s.id === currentSheetId ? { ...s, nodes: n, edges: e } : s
           )
           prevSheetIdsRef.current = toSave.map((s) => s.id)
-          upsertSheetsBatch(toSave, user.id).catch(() => toast.error('シートの保存に失敗しました'))
+          upsertSheetsBatch(toSave).catch(() => toast.error('シートの保存に失敗しました'))
         }
         initializedRef.current = true
       })
@@ -56,16 +52,15 @@ export function useSheetsSync(user: User | null) {
 
   // ノード・エッジ変更時：現在のシートをDebounce保存
   useEffect(() => {
-    if (!initializedRef.current || !userIdRef.current) return
+    if (!initializedRef.current) return
 
     const { sheets: s, currentSheetId } = useMindmapStore.getState()
     const currentSheet = s.find((sh) => sh.id === currentSheetId)
     if (!currentSheet) return
 
-    const userId = userIdRef.current
     if (nodeTimerRef.current) clearTimeout(nodeTimerRef.current)
     nodeTimerRef.current = setTimeout(() => {
-      upsertSheet({ ...currentSheet, nodes, edges }, userId).catch(() => toast.error('変更の保存に失敗しました'))
+      upsertSheet({ ...currentSheet, nodes, edges }).catch(() => toast.error('変更の保存に失敗しました'))
     }, NODE_DEBOUNCE_MS)
 
     return () => {
@@ -76,12 +71,11 @@ export function useSheetsSync(user: User | null) {
   // シートの追加・削除・リネームを検知してDBに反映
   const sheetKey = sheets.map((s) => s.id + s.name).join(',')
   useEffect(() => {
-    if (!initializedRef.current || !userIdRef.current) return
+    if (!initializedRef.current) return
 
     const { nodes: n, edges: e, currentSheetId } = useMindmapStore.getState()
     const currentIds = sheets.map((s) => s.id)
     const prevIds = prevSheetIdsRef.current
-    const userId = userIdRef.current
 
     // 削除されたシートをDBから削除
     const deletedIds = prevIds.filter((id) => !currentIds.includes(id))
@@ -93,7 +87,7 @@ export function useSheetsSync(user: User | null) {
       const updated = sheets.map((s) =>
         s.id === currentSheetId ? { ...s, nodes: n, edges: e } : s
       )
-      upsertSheetsBatch(updated, userId).catch(() => toast.error('シートの保存に失敗しました'))
+      upsertSheetsBatch(updated).catch(() => toast.error('シートの保存に失敗しました'))
     }, SHEET_DEBOUNCE_MS)
 
     prevSheetIdsRef.current = currentIds
