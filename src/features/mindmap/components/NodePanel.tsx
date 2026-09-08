@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { GripVertical, Pin, PinOff } from 'lucide-react'
 import { type NodeColor, useMindmapStore } from '../store/mindmapStore'
+import { useRef } from 'react'
 
 const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] = [
   { key: 'purple', label: 'パープル', hex: '#f3e8ff', border: 'rgba(139,92,246,0.5)' },
@@ -13,12 +14,16 @@ const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] =
 
 export function NodePanel() {
   const selectedNodeId = useMindmapStore((s) => s.selectedNodeId)
-  const selectedNodeColor = useMindmapStore((s) =>
-    s.selectedNodeId ? (s.nodes.find((n) => n.id === s.selectedNodeId)?.data.color ?? null) : null
+  const selectedNode = useMindmapStore((s) =>
+    s.selectedNodeId ? s.nodes.find((n) => n.id === s.selectedNodeId) ?? null : null
   )
+  const selectedNodeColor = selectedNode?.data.color ?? null
+  const selectedNodeMemo = selectedNode?.data.memo ?? ''
   const updateNodeColor = useMindmapStore((s) => s.updateNodeColor)
+  const updateNodeMemo = useMindmapStore((s) => s.updateNodeMemo)
   const defaultNodeColor = useMindmapStore((s) => s.defaultNodeColor)
   const setDefaultNodeColor = useMindmapStore((s) => s.setDefaultNodeColor)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   return (
     <AnimatePresence>
@@ -93,6 +98,44 @@ export function NodePanel() {
                 }}
               />
             ))}
+          </div>
+
+          {/* メモ */}
+          <div style={{ marginTop: 16, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
+            <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>
+              メモ
+            </p>
+            <textarea
+              value={selectedNodeMemo}
+              onChange={(e) => {
+                const memo = e.target.value
+                if (!selectedNodeId) return
+                if (debounceRef.current) clearTimeout(debounceRef.current)
+                debounceRef.current = setTimeout(() => {
+                  updateNodeMemo(selectedNodeId, memo)
+                }, 300)
+                // 即時反映のためにstoreを直接更新
+                updateNodeMemo(selectedNodeId, memo)
+              }}
+              placeholder="メモを入力..."
+              rows={4}
+              style={{
+                width: '100%',
+                resize: 'vertical',
+                borderRadius: 10,
+                border: '1.5px solid rgba(0,0,0,0.08)',
+                padding: '8px 10px',
+                fontSize: 12,
+                color: '#334155',
+                background: 'rgba(248,250,252,0.8)',
+                outline: 'none',
+                fontFamily: 'inherit',
+                lineHeight: 1.5,
+                boxSizing: 'border-box',
+              }}
+              onFocus={(e) => { e.target.style.borderColor = 'rgba(139,92,246,0.5)' }}
+              onBlur={(e) => { e.target.style.borderColor = 'rgba(0,0,0,0.08)' }}
+            />
           </div>
 
           {/* デフォルトカラー固定 */}

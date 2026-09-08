@@ -1,6 +1,6 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, StickyNote } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { type MindmapNodeData, type NodeColor, useMindmapStore } from '../store/mindmapStore'
@@ -159,6 +159,82 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
           {data.label}
         </p>
       )}
+
+      {/* メモインジケーター（メモあり・非選択時） */}
+      {data.memo && !selected && (
+        <div style={{
+          position: 'absolute',
+          bottom: 4,
+          right: 6,
+          color: colors.border.replace('0.4)', '0.7)'),
+          lineHeight: 1,
+          pointerEvents: 'none',
+        }}>
+          <StickyNote size={10} />
+        </div>
+      )}
+
+      {/* メモバブル（選択時） */}
+      <AnimatePresence>
+        {selected && data.memo && (
+          <motion.div
+            key="memo-bubble"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 10px)',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(255,255,255,0.97)',
+              border: `1.5px solid ${colors.border}`,
+              borderRadius: 12,
+              padding: '10px 14px',
+              minWidth: 160,
+              maxWidth: 260,
+              boxShadow: `0 4px 16px rgba(0,0,0,0.10), 0 0 0 1px ${colors.border}`,
+              zIndex: 50,
+              pointerEvents: 'none',
+            }}
+          >
+            {/* 吹き出しの三角（上向き） */}
+            <div style={{
+              position: 'absolute',
+              top: -6,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '6px solid transparent',
+              borderRight: '6px solid transparent',
+              borderBottom: `6px solid ${colors.border.replace('0.4)', '0.6)')}`,
+            }} />
+            <div style={{
+              position: 'absolute',
+              top: -4,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '5px solid transparent',
+              borderRight: '5px solid transparent',
+              borderBottom: '5px solid rgba(255,255,255,0.97)',
+            }} />
+            <p style={{
+              margin: 0,
+              fontSize: 12,
+              color: '#334155',
+              lineHeight: 1.6,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}>
+              {data.memo}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 削除ボタン */}
       <AnimatePresence>
