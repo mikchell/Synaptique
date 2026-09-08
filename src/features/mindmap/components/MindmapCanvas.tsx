@@ -18,7 +18,7 @@ import { HelpHint } from './HelpHint'
 import { SheetTabs } from './SheetTabs'
 
 const nodeTypes = { mindmapNode: MindmapNode }
-const edgeTypes = { interactive: InteractiveEdge }
+const edgeTypes = { interactive: InteractiveEdge, default: InteractiveEdge }
 
 function MindmapFlow() {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setSelectedNodeId, editingNodeId } =
