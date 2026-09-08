@@ -14,6 +14,7 @@ const SHEET_DEBOUNCE_MS = 2000  // シートメタ変更の保存間隔
 
 export function useSheetsSync(user: User | null) {
   const loadSheets = useMindmapStore((s) => s.loadSheets)
+  const setIsSaving = useMindmapStore((s) => s.setIsSaving)
   const nodes = useMindmapStore((s) => s.nodes)
   const edges = useMindmapStore((s) => s.edges)
   const sheets = useMindmapStore((s) => s.sheets)
@@ -58,9 +59,12 @@ export function useSheetsSync(user: User | null) {
     const currentSheet = s.find((sh) => sh.id === currentSheetId)
     if (!currentSheet) return
 
+    setIsSaving(true)
     if (nodeTimerRef.current) clearTimeout(nodeTimerRef.current)
     nodeTimerRef.current = setTimeout(() => {
-      upsertSheet({ ...currentSheet, nodes, edges }).catch(() => toast.error('変更の保存に失敗しました'))
+      upsertSheet({ ...currentSheet, nodes, edges })
+        .then(() => setIsSaving(false))
+        .catch(() => { setIsSaving(false); toast.error('変更の保存に失敗しました') })
     }, NODE_DEBOUNCE_MS)
 
     return () => {
@@ -82,12 +86,15 @@ export function useSheetsSync(user: User | null) {
     deletedIds.forEach((id) => deleteSheetFromDb(id).catch(() => toast.error('シートの削除に失敗しました')))
 
     // 追加・更新されたシートをDebounceで保存
+    setIsSaving(true)
     if (sheetTimerRef.current) clearTimeout(sheetTimerRef.current)
     sheetTimerRef.current = setTimeout(() => {
       const updated = sheets.map((s) =>
         s.id === currentSheetId ? { ...s, nodes: n, edges: e } : s
       )
-      upsertSheetsBatch(updated).catch(() => toast.error('シートの保存に失敗しました'))
+      upsertSheetsBatch(updated)
+        .then(() => setIsSaving(false))
+        .catch(() => { setIsSaving(false); toast.error('シートの保存に失敗しました') })
     }, SHEET_DEBOUNCE_MS)
 
     prevSheetIdsRef.current = currentIds

@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { AlignJustify, GripVertical, Pin, PinOff } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useIsMobile } from '../../../hooks/useIsMobile'
@@ -28,6 +28,7 @@ export function NodePanel() {
   const setDefaultNodeColor = useMindmapStore((s) => s.setDefaultNodeColor)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [colorExpanded, setColorExpanded] = useState(true)
+  const dragControls = useDragControls()
 
 
   return (
@@ -44,7 +45,9 @@ export function NodePanel() {
 
           <motion.div
             key="node-panel"
-            drag={!isMobile}
+            drag
+            dragControls={dragControls}
+            dragListener={false}
             dragMomentum={false}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -66,8 +69,11 @@ export function NodePanel() {
           >
             {/* ヘッダー（展開時のみ表示） */}
             {colorExpanded && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 14, cursor: isMobile ? 'default' : 'grab' }}>
-                {!isMobile && <GripVertical size={13} color="#cbd5e1" />}
+              <div
+                onPointerDown={(e) => dragControls.start(e)}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 14, cursor: 'grab', touchAction: 'none' }}
+              >
+                <GripVertical size={13} color="#cbd5e1" />
                 <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0, flex: 1 }}>
                   ノードカラー
                 </p>
@@ -161,13 +167,22 @@ export function NodePanel() {
 
             {/* メモ（常に表示） */}
             <div style={{ marginTop: colorExpanded ? 16 : 0, borderTop: colorExpanded ? '1px solid rgba(0,0,0,0.06)' : 'none', paddingTop: colorExpanded ? 14 : 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+              <div
+                onPointerDown={!colorExpanded ? (e) => dragControls.start(e) : undefined}
+                style={{
+                  display: 'flex', alignItems: 'center', marginBottom: 8,
+                  ...(!colorExpanded ? { cursor: 'grab', touchAction: 'none' } : {}),
+                }}
+              >
+                {/* 折りたたみ時はグリップアイコンを表示 */}
+                {!colorExpanded && <GripVertical size={13} color="#cbd5e1" style={{ marginRight: 2 }} />}
                 <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0, flex: 1 }}>
                   メモ
                 </p>
                 {/* 折りたたみ時のみボタンをメモ横に表示 */}
                 {!colorExpanded && (
                   <button
+                    onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => setColorExpanded(true)}
                     title="カラー選択を表示"
                     style={{
