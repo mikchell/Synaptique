@@ -37,6 +37,7 @@ interface MindmapStore {
   editingNodeId: string | null
   defaultNodeColor: NodeColor | null
   isSaving: boolean
+  layoutSnapshot: Node<MindmapNodeData>[] | null
 
   onNodesChange: (changes: NodeChange[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
@@ -48,6 +49,7 @@ interface MindmapStore {
   insertNodeBetween: (sourceId: string, targetId: string, edgeId: string, sourceHandle: string, targetHandle: string) => void
   tidyLayout: () => void
   tidySelectedLayout: () => void
+  toggleLayout: () => void
   updateNodeLabel: (id: string, label: string) => void
   updateNodeColor: (id: string, color: NodeColor) => void
   updateNodeMemo: (id: string, memo: string) => void
@@ -128,6 +130,7 @@ export const useMindmapStore = create<MindmapStore>()(
       editingNodeId: null,
       defaultNodeColor: null,
       isSaving: false,
+      layoutSnapshot: null,
 
       onNodesChange: (changes) => {
         set({ nodes: applyNodeChanges(changes, get().nodes) as Node<MindmapNodeData>[] })
@@ -370,10 +373,11 @@ export const useMindmapStore = create<MindmapStore>()(
 
       tidyLayout: () => {
         const { nodes, edges } = get()
+        const isMobile = window.innerWidth < 768
 
-        const NODE_H = 60
-        const V_GAP = 80
-        const H_STEP = 240
+        const NODE_H = isMobile ? 44 : 60
+        const V_GAP  = isMobile ? 52 : 80
+        const H_STEP = isMobile ? 160 : 240
 
         const childrenOf = (id: string) =>
           edges.filter((e) => e.source === id).map((e) => e.target as string)
@@ -414,7 +418,17 @@ export const useMindmapStore = create<MindmapStore>()(
             : e
         )
 
-        set({ nodes: repositioned, edges: normalizedEdges })
+        set({ nodes: repositioned, edges: normalizedEdges, layoutSnapshot: nodes })
+      },
+
+      toggleLayout: () => {
+        const { nodes, layoutSnapshot } = get()
+        if (!layoutSnapshot) return
+        const restored = nodes.map((n) => {
+          const saved = layoutSnapshot.find((s) => s.id === n.id)
+          return saved ? { ...n, position: saved.position } : n
+        })
+        set({ nodes: restored, layoutSnapshot: nodes })
       },
 
       tidySelectedLayout: () => {
@@ -431,9 +445,10 @@ export const useMindmapStore = create<MindmapStore>()(
         const hasParentInSelection = new Set(selectedEdges.map((e) => e.target))
         const subRoots = selectedNodes.filter((n) => !hasParentInSelection.has(n.id))
 
-        const NODE_H_S = 60
-        const V_GAP_S = 80
-        const H_STEP_S = 240
+        const isMobile = window.innerWidth < 768
+        const NODE_H_S = isMobile ? 44 : 60
+        const V_GAP_S  = isMobile ? 52 : 80
+        const H_STEP_S = isMobile ? 160 : 240
 
         const childrenOf = (id: string) =>
           selectedEdges.filter((e) => e.source === id).map((e) => e.target)
