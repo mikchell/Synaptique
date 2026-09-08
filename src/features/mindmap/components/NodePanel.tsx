@@ -1,7 +1,6 @@
 import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { AlignJustify, GripVertical, Pin, PinOff } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { useIsMobile } from '../../../hooks/useIsMobile'
 import { type NodeColor, useMindmapStore } from '../store/mindmapStore'
 
 const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] = [
@@ -14,9 +13,7 @@ const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] =
 ]
 
 export function NodePanel() {
-  const isMobile = useIsMobile()
   const selectedNodeId = useMindmapStore((s) => s.selectedNodeId)
-  const setSelectedNodeId = useMindmapStore((s) => s.setSelectedNodeId)
   const selectedNode = useMindmapStore((s) =>
     s.selectedNodeId ? s.nodes.find((n) => n.id === s.selectedNodeId) ?? null : null
   )
@@ -35,14 +32,6 @@ export function NodePanel() {
     <AnimatePresence>
       {selectedNodeId && (
         <>
-          {/* モバイル: パネル外タップで閉じるオーバーレイ */}
-          {isMobile && (
-            <div
-              onClick={() => setSelectedNodeId(null)}
-              style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-            />
-          )}
-
           <motion.div
             key="node-panel"
             drag
