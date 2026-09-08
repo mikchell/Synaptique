@@ -67,3 +67,7 @@ body {
 .react-flow__node:hover .react-flow__handle {
   opacity: 1;
 }
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
