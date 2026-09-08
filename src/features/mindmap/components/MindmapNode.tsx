@@ -55,6 +55,10 @@ export function MindmapNode({ id, data, selected }: NodeProps<Node<MindmapNodeDa
     if (editingNodeId === id) {
       setEditing(true)
       setEditingNodeId(null)
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+        inputRef.current?.select()
+      })
     }
   }, [editingNodeId, id, setEditingNodeId])
 
