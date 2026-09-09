@@ -74,10 +74,10 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
     const onMouseMove = (ev: MouseEvent) => {
       if (!resizingRef.current) return
       const { startX, startY, startScale, corner: c } = resizingRef.current
-      const dx = c.includes('right') ? ev.clientX - startX : startX - ev.clientX
-      const dy = c.includes('bottom') ? ev.clientY - startY : startY - ev.clientY
-      const delta = (dx + dy) / 200
-      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, startScale + delta))
+      const signX = c.includes('right') ? 1 : -1
+      const signY = c.includes('bottom') ? 1 : -1
+      const diag = (ev.clientX - startX) * signX + (ev.clientY - startY) * signY
+      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, startScale + diag / 150))
       updateNodeScale(id, newScale)
     }
 
@@ -268,29 +268,24 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
         )}
       </AnimatePresence>
 
-      {/* リサイズハンドル（選択・ホバー時） */}
-      {(selected || hovered) && !editing && (
-        <>
-          {[
-            { corner: 'top-left',     style: { top: -5, left: -5 },     cursor: 'nw-resize' },
-            { corner: 'top-right',    style: { top: -5, right: -5 },    cursor: 'ne-resize' },
-            { corner: 'bottom-left',  style: { bottom: -5, left: -5 },  cursor: 'sw-resize' },
-            { corner: 'bottom-right', style: { bottom: -5, right: -5 }, cursor: 'se-resize' },
-          ].map(({ corner, style, cursor }) => (
-            <div
-              key={corner}
-              className="nodrag"
-              onMouseDown={(e) => onResizeMouseDown(e, corner)}
-              style={{
-                position: 'absolute', ...style,
-                width: 10, height: 10, borderRadius: '50%',
-                background: '#ffffff', border: '1.5px solid rgba(124,58,237,0.6)',
-                cursor, zIndex: 30, boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-              }}
-            />
-          ))}
-        </>
-      )}
+      {/* 角リサイズ用透明ヒットエリア（常に存在、カーソルのみ変化） */}
+      {[
+        { corner: 'top-left',     style: { top: 0, left: 0 },       cursor: 'nw-resize' },
+        { corner: 'top-right',    style: { top: 0, right: 0 },      cursor: 'ne-resize' },
+        { corner: 'bottom-left',  style: { bottom: 0, left: 0 },    cursor: 'sw-resize' },
+        { corner: 'bottom-right', style: { bottom: 0, right: 0 },   cursor: 'se-resize' },
+      ].map(({ corner, style, cursor }) => (
+        <div
+          key={corner}
+          className="nodrag"
+          onMouseDown={(e) => onResizeMouseDown(e, corner)}
+          style={{
+            position: 'absolute', ...style,
+            width: 16, height: 16,
+            cursor, zIndex: 30,
+          }}
+        />
+      ))}
 
       {/* 削除ボタン */}
       <AnimatePresence>
