@@ -123,7 +123,6 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'hidden',
       }}
       onDoubleClick={() => setEditing(true)}
       onClick={() => setSelectedNodeId(id)}
