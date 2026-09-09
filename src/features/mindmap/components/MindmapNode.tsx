@@ -39,7 +39,7 @@ const ADD_BTN: React.CSSProperties = {
   padding: 0,
 }
 
-function MindmapNodeComponent({ id, data, selected, width }: NodeProps<Node<MindmapNodeData>>) {
+function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<Node<MindmapNodeData>>) {
   const { addChildNode, addChildNodeBelow, updateNodeLabel, deleteNode, setSelectedNodeId, editingNodeId, setEditingNodeId } = useMindmapStore(
     useShallow((s) => ({
       addChildNode: s.addChildNode,
@@ -58,8 +58,11 @@ function MindmapNodeComponent({ id, data, selected, width }: NodeProps<Node<Mind
   const colors = COLOR_MAP[data.color]
   const showActions = (selected || hovered) && !editing
   const sz = SIZE_MAP[data.isRoot ? 0 : 1]
-  const fontScale = width ? width / sz.minWidth : 1
-  const fontSize = Math.round(sz.fontSize * fontScale)
+  // width・height両方使って面積ベースでスケール（より追従感が出る）
+  const defaultH = sz.paddingV * 2 + sz.fontSize * 2.2
+  const scaleW = width ? width / sz.minWidth : 1
+  const scaleH = height ? height / defaultH : 1
+  const fontSize = Math.round(sz.fontSize * Math.sqrt(scaleW * scaleH))
 
   useEffect(() => { setDraft(data.label) }, [data.label])
 
@@ -135,6 +138,7 @@ function MindmapNodeComponent({ id, data, selected, width }: NodeProps<Node<Mind
         <NodeResizeControl
           key={pos}
           position={pos}
+          keepAspectRatio
           minWidth={sz.minWidth}
           minHeight={sz.paddingV * 2 + sz.fontSize * 2}
           style={{
