@@ -19,6 +19,8 @@ export interface MindmapNodeData extends Record<string, unknown> {
   isRoot?: boolean
   depth?: number
   memo?: string
+  borderWidth?: number
+  sizeScale?: number
 }
 
 export interface Sheet {
@@ -53,6 +55,8 @@ interface MindmapStore {
   updateNodeLabel: (id: string, label: string) => void
   updateNodeColor: (id: string, color: NodeColor) => void
   updateNodeMemo: (id: string, memo: string) => void
+  updateNodeBorderWidth: (id: string, borderWidth: number) => void
+  updateNodeSizeScale: (id: string, sizeScale: number) => void
   deleteNode: (id: string) => void
   setSelectedNodeId: (id: string | null) => void
   setEditingNodeId: (id: string | null) => void
@@ -503,6 +507,22 @@ export const useMindmapStore = create<MindmapStore>()(
         set({
           nodes: get().nodes.map((n) =>
             n.id === id ? { ...n, data: { ...n.data, memo } } : n
+          ),
+        })
+      },
+
+      updateNodeBorderWidth: (id, borderWidth) => {
+        set({
+          nodes: get().nodes.map((n) =>
+            n.id === id ? { ...n, data: { ...n.data, borderWidth } } : n
+          ),
+        })
+      },
+
+      updateNodeSizeScale: (id, sizeScale) => {
+        set({
+          nodes: get().nodes.map((n) =>
+            n.id === id ? { ...n, data: { ...n.data, sizeScale } } : n
           ),
         })
       },

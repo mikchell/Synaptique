@@ -21,8 +21,12 @@ export function NodePanel() {
   )
   const selectedNodeColor = selectedNode?.data.color ?? null
   const selectedNodeMemo = selectedNode?.data.memo ?? ''
+  const selectedNodeBorderWidth = selectedNode?.data.borderWidth ?? null
+  const selectedNodeSizeScale = selectedNode?.data.sizeScale ?? 1
   const updateNodeColor = useMindmapStore((s) => s.updateNodeColor)
   const updateNodeMemo = useMindmapStore((s) => s.updateNodeMemo)
+  const updateNodeBorderWidth = useMindmapStore((s) => s.updateNodeBorderWidth)
+  const updateNodeSizeScale = useMindmapStore((s) => s.updateNodeSizeScale)
   const defaultNodeColor = useMindmapStore((s) => s.defaultNodeColor)
   const setDefaultNodeColor = useMindmapStore((s) => s.setDefaultNodeColor)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -145,6 +149,58 @@ export function NodePanel() {
                       }}
                     />
                   ))}
+                </div>
+
+                {/* ノードの大きさ */}
+                <div style={{ marginTop: 16, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
+                      大きさ
+                    </p>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{Math.round(selectedNodeSizeScale * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={2}
+                    step={0.05}
+                    value={selectedNodeSizeScale}
+                    onChange={(e) => selectedNodeId && updateNodeSizeScale(selectedNodeId, parseFloat(e.target.value))}
+                    style={{ width: '100%', accentColor: '#7c3aed', cursor: 'pointer' }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+                    <span style={{ fontSize: 10, color: '#cbd5e1' }}>50%</span>
+                    <span style={{ fontSize: 10, color: '#cbd5e1' }}>200%</span>
+                  </div>
+                </div>
+
+                {/* 枠線の太さ */}
+                <div style={{ marginTop: 16, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
+                  <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px 0' }}>
+                    枠線
+                  </p>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[1, 2, 3, 4].map((w) => (
+                      <button
+                        key={w}
+                        onClick={() => selectedNodeId && updateNodeBorderWidth(selectedNodeId, w)}
+                        title={`${w}px`}
+                        style={{
+                          flex: 1, height: 28, borderRadius: 8,
+                          background: selectedNodeBorderWidth === w ? 'rgba(124,58,237,0.12)' : 'rgba(0,0,0,0.04)',
+                          border: selectedNodeBorderWidth === w ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid transparent',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{
+                          width: '70%', height: w,
+                          background: selectedNodeBorderWidth === w ? '#7c3aed' : '#94a3b8',
+                          borderRadius: w,
+                        }} />
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* デフォルトカラー固定 */}
