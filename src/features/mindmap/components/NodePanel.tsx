@@ -4,6 +4,19 @@ import { useRef, useState } from 'react'
 import { useIsMobile } from '../../../hooks/useIsMobile'
 import { type NodeColor, useMindmapStore } from '../store/mindmapStore'
 
+// sizeScale (0.5〜3.0) ↔ スライダー内部値 (0〜2) の変換
+// 内部値1がsizeScale=1.0（100%）の中央になる非線形マッピング
+const scaleToSlider = (scale: number) =>
+  scale <= 1 ? (scale - 0.5) * 2 : 1 + (scale - 1) / 2
+
+const sliderToScale = (v: number) =>
+  v <= 1 ? 0.5 + v * 0.5 : 1 + (v - 1) * 2
+
+// スライダートラック上の位置(%)を返す
+const markerPos = (scale: number) => scaleToSlider(scale) / 2 * 100
+
+const SIZE_MARKERS = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+
 const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] = [
   { key: 'purple', label: 'パープル', hex: '#f3e8ff', border: 'rgba(139,92,246,0.5)' },
   { key: 'blue',   label: 'ブルー',   hex: '#dbeafe', border: 'rgba(59,130,246,0.5)' },
@@ -157,7 +170,7 @@ export function NodePanel() {
                     <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
                       大きさ
                     </p>
-                    <span style={{ fontSize: 11, color: selectedNodeSizeScale === 1 ? '#7c3aed' : '#94a3b8', fontWeight: selectedNodeSizeScale === 1 ? 700 : 400 }}>
+                    <span style={{ fontSize: 11, color: SIZE_MARKERS.includes(selectedNodeSizeScale) ? '#7c3aed' : '#94a3b8', fontWeight: SIZE_MARKERS.includes(selectedNodeSizeScale) ? 700 : 400 }}>
                       {Math.round(selectedNodeSizeScale * 100)}%
                     </span>
                   </div>
@@ -168,36 +181,59 @@ export function NodePanel() {
                       min={0}
                       max={2}
                       step={0.01}
-                      value={selectedNodeSizeScale <= 1
-                        ? (selectedNodeSizeScale - 0.5) * 2
-                        : 1 + (selectedNodeSizeScale - 1) / 2}
+                      value={scaleToSlider(selectedNodeSizeScale)}
                       onChange={(e) => {
                         if (!selectedNodeId) return
-                        const v = parseFloat(e.target.value)
-                        const scale = v <= 1 ? 0.5 + v * 0.5 : 1 + (v - 1) * 2
+                        const scale = sliderToScale(parseFloat(e.target.value))
                         updateNodeSizeScale(selectedNodeId, Math.round(scale * 100) / 100)
                       }}
                       style={{ width: '100%', accentColor: '#7c3aed', cursor: 'pointer' }}
                     />
-                    {/* デフォルト（100%）の目印 */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 1,
-                      pointerEvents: 'none',
-                    }}>
-                      <div style={{ width: 1, height: 4, background: '#cbd5e1' }} />
-                      <span style={{ fontSize: 9, color: '#cbd5e1', whiteSpace: 'nowrap' }}>初期値</span>
+                    {/* 50刻みのタップ可能な目印 */}
+                    <div style={{ position: 'relative', height: 26, marginTop: 2 }}>
+                      {SIZE_MARKERS.map((markerScale) => {
+                        const isActive = Math.abs(selectedNodeSizeScale - markerScale) < 0.03
+                        const isDefault = markerScale === 1.0
+                        return (
+                          <button
+                            key={markerScale}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => selectedNodeId && updateNodeSizeScale(selectedNodeId, markerScale)}
+                            style={{
+                              position: 'absolute',
+                              left: `${markerPos(markerScale)}%`,
+                              transform: 'translateX(-50%)',
+                              top: 0,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: 2,
+                              background: 'none',
+                              border: 'none',
+                              padding: '0 3px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <div style={{
+                              width: isDefault ? 2 : 1,
+                              height: isActive ? 7 : 4,
+                              background: isActive ? '#7c3aed' : isDefault ? '#a78bfa' : '#cbd5e1',
+                              borderRadius: 1,
+                              transition: 'all 0.15s ease',
+                            }} />
+                            <span style={{
+                              fontSize: 8,
+                              color: isActive ? '#7c3aed' : isDefault ? '#a78bfa' : '#cbd5e1',
+                              fontWeight: isActive || isDefault ? 700 : 400,
+                              whiteSpace: 'nowrap',
+                              transition: 'color 0.15s ease',
+                            }}>
+                              {Math.round(markerScale * 100)}
+                            </span>
+                          </button>
+                        )
+                      })}
                     </div>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
-                    <span style={{ fontSize: 10, color: '#cbd5e1' }}>50%</span>
-                    <span style={{ fontSize: 10, color: '#cbd5e1' }}>300%</span>
                   </div>
                 </div>
 
