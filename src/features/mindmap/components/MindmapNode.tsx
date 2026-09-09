@@ -137,7 +137,7 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
         maxWidth: sz.maxWidth * scale,
         borderRadius: sz.borderRadius * scale,
         background: colors.bg,
-        border: `${data.borderWidth ?? sz.borderWidth}px solid ${colors.border}`,
+        border: `${sz.borderWidth}px solid ${colors.border}`,
         padding: `${sz.paddingY * scale}px ${sz.paddingX * scale}px`,
         boxShadow: selected
           ? `0 0 0 2px #7c3aed, 0 4px 16px ${colors.glow}`

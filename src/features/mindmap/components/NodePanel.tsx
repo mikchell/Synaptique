@@ -21,10 +21,8 @@ export function NodePanel() {
   )
   const selectedNodeColor = selectedNode?.data.color ?? null
   const selectedNodeMemo = selectedNode?.data.memo ?? ''
-  const selectedNodeBorderWidth = selectedNode?.data.borderWidth ?? null
   const updateNodeColor = useMindmapStore((s) => s.updateNodeColor)
   const updateNodeMemo = useMindmapStore((s) => s.updateNodeMemo)
-  const updateNodeBorderWidth = useMindmapStore((s) => s.updateNodeBorderWidth)
   const defaultNodeColor = useMindmapStore((s) => s.defaultNodeColor)
   const setDefaultNodeColor = useMindmapStore((s) => s.setDefaultNodeColor)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -147,30 +145,6 @@ export function NodePanel() {
                       }}
                     />
                   ))}
-                </div>
-
-                {/* 枠線の太さ */}
-                <div style={{ marginTop: 16, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
-                  <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px 0' }}>
-                    枠線の太さ
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input
-                      type="range"
-                      min={0}
-                      max={8}
-                      step={0.5}
-                      value={selectedNodeBorderWidth ?? 1.5}
-                      onChange={(e) => {
-                        if (!selectedNodeId) return
-                        updateNodeBorderWidth(selectedNodeId, parseFloat(e.target.value))
-                      }}
-                      style={{ flex: 1, accentColor: '#7c3aed', cursor: 'pointer' }}
-                    />
-                    <span style={{ fontSize: 11, color: '#64748b', minWidth: 28, textAlign: 'right' }}>
-                      {(selectedNodeBorderWidth ?? 1.5).toFixed(1)}
-                    </span>
-                  </div>
                 </div>
 
                 {/* デフォルトカラー固定 */}
