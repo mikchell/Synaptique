@@ -187,50 +187,64 @@ export function NodePanel() {
                         const scale = sliderToScale(parseFloat(e.target.value))
                         updateNodeSizeScale(selectedNodeId, Math.round(scale * 100) / 100)
                       }}
-                      style={{ width: '100%', accentColor: '#7c3aed', cursor: 'pointer' }}
+                      style={{ width: '100%', accentColor: '#7c3aed', cursor: 'pointer', display: 'block' }}
                     />
-                    {/* 50刻みのタップ可能な目印 */}
-                    <div style={{ position: 'relative', height: 26, marginTop: 2 }}>
+                    {/* スライダートラック上の丸い目印（タップで即スナップ） */}
+                    {SIZE_MARKERS.map((markerScale) => {
+                      const isActive = Math.abs(selectedNodeSizeScale - markerScale) < 0.03
+                      const isDefault = markerScale === 1.0
+                      // サムの半径分を考慮して端に寄りすぎないよう補正
+                      const pct = markerPos(markerScale)
+                      const adjustedPct = `calc(${pct}% * 0.875 + 6.25%)`
+                      return (
+                        <button
+                          key={markerScale}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={() => selectedNodeId && updateNodeSizeScale(selectedNodeId, markerScale)}
+                          title={`${Math.round(markerScale * 100)}%`}
+                          style={{
+                            position: 'absolute',
+                            left: adjustedPct,
+                            top: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: isDefault ? 10 : 7,
+                            height: isDefault ? 10 : 7,
+                            borderRadius: '50%',
+                            background: isActive ? '#7c3aed' : isDefault ? '#c4b5fd' : '#e2e8f0',
+                            border: isActive ? '2px solid white' : isDefault ? '1.5px solid #a78bfa' : '1.5px solid #cbd5e1',
+                            boxShadow: isActive ? '0 0 0 2px #7c3aed' : 'none',
+                            cursor: 'pointer',
+                            padding: 0,
+                            zIndex: 2,
+                            transition: 'all 0.15s ease',
+                          }}
+                        />
+                      )
+                    })}
+                    {/* ラベル */}
+                    <div style={{ position: 'relative', height: 18, marginTop: 3 }}>
                       {SIZE_MARKERS.map((markerScale) => {
                         const isActive = Math.abs(selectedNodeSizeScale - markerScale) < 0.03
                         const isDefault = markerScale === 1.0
+                        const pct = markerPos(markerScale)
+                        const adjustedPct = `calc(${pct}% * 0.875 + 6.25%)`
                         return (
-                          <button
+                          <span
                             key={markerScale}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onClick={() => selectedNodeId && updateNodeSizeScale(selectedNodeId, markerScale)}
                             style={{
                               position: 'absolute',
-                              left: `${markerPos(markerScale)}%`,
+                              left: adjustedPct,
                               transform: 'translateX(-50%)',
-                              top: 0,
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              gap: 2,
-                              background: 'none',
-                              border: 'none',
-                              padding: '0 3px',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <div style={{
-                              width: isDefault ? 2 : 1,
-                              height: isActive ? 7 : 4,
-                              background: isActive ? '#7c3aed' : isDefault ? '#a78bfa' : '#cbd5e1',
-                              borderRadius: 1,
-                              transition: 'all 0.15s ease',
-                            }} />
-                            <span style={{
                               fontSize: 8,
                               color: isActive ? '#7c3aed' : isDefault ? '#a78bfa' : '#cbd5e1',
                               fontWeight: isActive || isDefault ? 700 : 400,
                               whiteSpace: 'nowrap',
+                              pointerEvents: 'none',
                               transition: 'color 0.15s ease',
-                            }}>
-                              {Math.round(markerScale * 100)}
-                            </span>
-                          </button>
+                            }}
+                          >
+                            {Math.round(markerScale * 100)}
+                          </span>
                         )
                       })}
                     </div>
