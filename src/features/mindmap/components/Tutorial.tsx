@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useIsMobile } from '../../../hooks/useIsMobile'
+import { useMindmapStore } from '../store/mindmapStore'
 
 const TUTORIAL_KEY = 'synaptique_tutorial_done'
 
@@ -36,6 +37,7 @@ export function Tutorial() {
   const isMobile = useIsMobile()
   const [step, setStep] = useState(0)
   const [visible, setVisible] = useState(false)
+  const templateModalOpen = useMindmapStore((s) => s.templateModalOpen)
 
   useEffect(() => {
     if (!isMobile && !localStorage.getItem(TUTORIAL_KEY)) {
@@ -43,7 +45,8 @@ export function Tutorial() {
     }
   }, [isMobile])
 
-  if (isMobile) return null
+  // テンプレート選択モーダルが開いている間はチュートリアルを表示しない
+  if (isMobile || templateModalOpen) return null
 
   const handleNext = () => {
     if (step < STEPS.length - 1) {
