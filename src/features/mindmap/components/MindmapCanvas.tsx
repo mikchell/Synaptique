@@ -38,7 +38,7 @@ const getMinimapNodeColor = (node: { data: unknown }) =>
 
 function MindmapFlow() {
   const { user } = useAuth()
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setSelectedNodeId, editingNodeId, sheets, currentSheetId, openTemplateModal } =
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setSelectedNodeId, editingNodeId, currentSheetId, openTemplateModal } =
     useMindmapStore(
       useShallow((s) => ({
         nodes: s.nodes,
@@ -48,7 +48,6 @@ function MindmapFlow() {
         onConnect: s.onConnect,
         setSelectedNodeId: s.setSelectedNodeId,
         editingNodeId: s.editingNodeId,
-        sheets: s.sheets,
         currentSheetId: s.currentSheetId,
         openTemplateModal: s.openTemplateModal,
       }))
@@ -59,12 +58,15 @@ function MindmapFlow() {
   useSheetsSync(user ?? null)
 
   // 現在のシートにmapTypeが未設定なら初回テンプレート選択を促す
+  // sheets を依存配列に含めると openTemplateModal のストア更新で無限ループになるため
+  // currentSheetId が変わったタイミングでストアから直接読む
   useEffect(() => {
-    const currentSheet = sheets.find((s) => s.id === currentSheetId)
+    const { sheets: s } = useMindmapStore.getState()
+    const currentSheet = s.find((sh) => sh.id === currentSheetId)
     if (currentSheet && !currentSheet.mapType) {
       openTemplateModal('init')
     }
-  }, [currentSheetId, sheets, openTemplateModal])
+  }, [currentSheetId, openTemplateModal])
 
   const handlePaneClick = useCallback(() => setSelectedNodeId(null), [setSelectedNodeId])
 
