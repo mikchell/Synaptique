@@ -39,7 +39,7 @@ const ADD_BTN: React.CSSProperties = {
   padding: 0,
 }
 
-function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNodeData>>) {
+function MindmapNodeComponent({ id, data, selected, width }: NodeProps<Node<MindmapNodeData>>) {
   const { addChildNode, addChildNodeBelow, updateNodeLabel, deleteNode, setSelectedNodeId, editingNodeId, setEditingNodeId } = useMindmapStore(
     useShallow((s) => ({
       addChildNode: s.addChildNode,
@@ -58,6 +58,8 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
   const colors = COLOR_MAP[data.color]
   const showActions = (selected || hovered) && !editing
   const sz = SIZE_MAP[data.isRoot ? 0 : 1]
+  const fontScale = width ? width / sz.minWidth : 1
+  const fontSize = Math.round(sz.fontSize * fontScale)
 
   useEffect(() => { setDraft(data.label) }, [data.label])
 
@@ -117,7 +119,7 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
         userSelect: 'none',
         position: 'relative',
         transition: 'box-shadow 0.2s ease',
-        fontSize: sz.fontSize,
+        fontSize,
         fontWeight: sz.fontWeight,
         display: 'flex',
         flexDirection: 'column',
@@ -161,7 +163,7 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
             border: 'none',
             outline: 'none',
             color: colors.text,
-            fontSize: sz.fontSize,
+            fontSize,
             fontWeight: sz.fontWeight,
             width: '100%',
             textAlign: 'center',
@@ -171,7 +173,7 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
         <p
           style={{
             color: colors.text,
-            fontSize: sz.fontSize,
+            fontSize,
             fontWeight: sz.fontWeight,
             margin: 0,
             textAlign: 'center',
