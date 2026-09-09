@@ -175,65 +175,69 @@ export function NodePanel() {
                     </span>
                   </div>
                   {/* スライダー：内部値0〜2、中央(1)が100%デフォルト */}
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="range"
-                      min={0}
-                      max={2}
-                      step={0.01}
-                      value={scaleToSlider(selectedNodeSizeScale)}
-                      onChange={(e) => {
-                        if (!selectedNodeId) return
-                        const scale = sliderToScale(parseFloat(e.target.value))
-                        updateNodeSizeScale(selectedNodeId, Math.round(scale * 100) / 100)
-                      }}
-                      style={{ width: '100%', accentColor: '#7c3aed', cursor: 'pointer', display: 'block' }}
-                    />
-                    {/* スライダートラック上の丸い目印（タップで即スナップ） */}
-                    {SIZE_MARKERS.map((markerScale) => {
-                      const isActive = Math.abs(selectedNodeSizeScale - markerScale) < 0.03
-                      const isDefault = markerScale === 1.0
-                      // サムの半径分を考慮して端に寄りすぎないよう補正
-                      const pct = markerPos(markerScale)
-                      const adjustedPct = `calc(${pct}% * 0.875 + 6.25%)`
-                      return (
-                        <button
-                          key={markerScale}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={() => selectedNodeId && updateNodeSizeScale(selectedNodeId, markerScale)}
-                          title={`${Math.round(markerScale * 100)}%`}
-                          style={{
-                            position: 'absolute',
-                            left: adjustedPct,
-                            top: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            width: isDefault ? 10 : 7,
-                            height: isDefault ? 10 : 7,
-                            borderRadius: '50%',
-                            background: isActive ? '#7c3aed' : isDefault ? '#c4b5fd' : '#e2e8f0',
-                            border: isActive ? '2px solid white' : isDefault ? '1.5px solid #a78bfa' : '1.5px solid #cbd5e1',
-                            boxShadow: isActive ? '0 0 0 2px #7c3aed' : 'none',
-                            cursor: 'pointer',
-                            padding: 0,
-                            zIndex: 2,
-                            transition: 'all 0.15s ease',
-                          }}
-                        />
-                      )
-                    })}
+                  <div>
+                    {/* inputと丸い目印を同じ領域に重ねる */}
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="range"
+                        min={0}
+                        max={2}
+                        step={0.01}
+                        value={scaleToSlider(selectedNodeSizeScale)}
+                        onChange={(e) => {
+                          if (!selectedNodeId) return
+                          const scale = sliderToScale(parseFloat(e.target.value))
+                          updateNodeSizeScale(selectedNodeId, Math.round(scale * 100) / 100)
+                        }}
+                        style={{ width: '100%', accentColor: '#7c3aed', cursor: 'pointer', display: 'block', position: 'relative', zIndex: 1 }}
+                      />
+                      {/* inputと完全に同じ領域を覆うオーバーレイ。丸い目印はここに置く */}
+                      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2 }}>
+                        {SIZE_MARKERS.map((markerScale) => {
+                          const isActive = Math.abs(selectedNodeSizeScale - markerScale) < 0.03
+                          const isDefault = markerScale === 1.0
+                          const pct = markerPos(markerScale)
+                          const left = `calc(${pct}% * 0.875 + 6.25%)`
+                          return (
+                            <button
+                              key={markerScale}
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={() => selectedNodeId && updateNodeSizeScale(selectedNodeId, markerScale)}
+                              title={`${Math.round(markerScale * 100)}%`}
+                              style={{
+                                position: 'absolute',
+                                left,
+                                top: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                width: isDefault ? 10 : 7,
+                                height: isDefault ? 10 : 7,
+                                borderRadius: '50%',
+                                background: isActive ? '#7c3aed' : isDefault ? '#c4b5fd' : '#e2e8f0',
+                                border: isActive ? '2px solid white' : isDefault ? '1.5px solid #a78bfa' : '1.5px solid #cbd5e1',
+                                boxShadow: isActive ? '0 0 0 2px #7c3aed' : 'none',
+                                cursor: 'pointer',
+                                padding: 0,
+                                pointerEvents: 'auto',
+                                transition: 'all 0.15s ease',
+                              }}
+                            />
+                          )
+                        })}
+                      </div>
+                    </div>
                     {/* ラベル */}
-                    <div style={{ position: 'relative', height: 18, marginTop: 3 }}>
+                    <div style={{ position: 'relative', height: 16, marginTop: 2 }}>
                       {SIZE_MARKERS.map((markerScale) => {
                         const isActive = Math.abs(selectedNodeSizeScale - markerScale) < 0.03
                         const isDefault = markerScale === 1.0
                         const pct = markerPos(markerScale)
-                        const adjustedPct = `calc(${pct}% * 0.875 + 6.25%)`
+                        const left = `calc(${pct}% * 0.875 + 6.25%)`
                         return (
                           <span
                             key={markerScale}
                             style={{
                               position: 'absolute',
-                              left: adjustedPct,
+                              left,
                               transform: 'translateX(-50%)',
                               fontSize: 8,
                               color: isActive ? '#7c3aed' : isDefault ? '#a78bfa' : '#cbd5e1',
