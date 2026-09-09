@@ -58,7 +58,7 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
   const colors = COLOR_MAP[data.color]
   const showActions = (selected || hovered) && !editing
   const depth = data.depth ?? 0
-  const sz = SIZE_MAP[Math.min(depth, SIZE_MAP.length - 1)]
+  const sz = SIZE_MAP[data.isRoot ? 0 : 1]
   const scale = data.sizeScale ?? 1
 
   useEffect(() => { setDraft(data.label) }, [data.label])
