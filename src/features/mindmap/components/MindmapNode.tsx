@@ -5,6 +5,9 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { type MindmapNodeData, type NodeColor, useMindmapStore } from '../store/mindmapStore'
 
+const MIN_SCALE = 0.4
+const MAX_SCALE = 3.0
+
 const COLOR_MAP: Record<NodeColor, { bg: string; border: string; glow: string; text: string }> = {
   purple: { bg: '#f3e8ff', border: 'rgba(139, 92, 246, 0.4)', glow: 'rgba(139, 92, 246, 0.12)', text: '#5b21b6' },
   blue:   { bg: '#dbeafe', border: 'rgba(59, 130, 246, 0.4)',  glow: 'rgba(59, 130, 246, 0.12)',  text: '#1e40af' },
@@ -16,10 +19,10 @@ const COLOR_MAP: Record<NodeColor, { bg: string; border: string; glow: string; t
 
 // depth 0 = root（最大）、depth が深くなるほど小さく
 const SIZE_MAP = [
-  { minWidth: 200, maxWidth: 280, fontSize: 18, fontWeight: 700, padding: '20px 28px', borderRadius: 24, borderWidth: 2 },
-  { minWidth: 150, maxWidth: 210, fontSize: 15, fontWeight: 600, padding: '14px 20px', borderRadius: 18, borderWidth: 1.5 },
-  { minWidth: 120, maxWidth: 170, fontSize: 13, fontWeight: 500, padding: '10px 14px', borderRadius: 13, borderWidth: 1.5 },
-  { minWidth: 100, maxWidth: 150, fontSize: 12, fontWeight: 500, padding: '8px 12px',  borderRadius: 10, borderWidth: 1 },
+  { minWidth: 200, maxWidth: 280, fontSize: 18, fontWeight: 700, paddingY: 20, paddingX: 28, borderRadius: 24, borderWidth: 2 },
+  { minWidth: 150, maxWidth: 210, fontSize: 15, fontWeight: 600, paddingY: 14, paddingX: 20, borderRadius: 18, borderWidth: 1.5 },
+  { minWidth: 120, maxWidth: 170, fontSize: 13, fontWeight: 500, paddingY: 10, paddingX: 14, borderRadius: 13, borderWidth: 1.5 },
+  { minWidth: 100, maxWidth: 150, fontSize: 12, fontWeight: 500, paddingY:  8, paddingX: 12, borderRadius: 10, borderWidth: 1 },
 ]
 
 const ADD_BTN: React.CSSProperties = {
@@ -40,7 +43,7 @@ const ADD_BTN: React.CSSProperties = {
 }
 
 function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNodeData>>) {
-  const { addChildNode, addChildNodeBelow, updateNodeLabel, deleteNode, setSelectedNodeId, editingNodeId, setEditingNodeId } = useMindmapStore(
+  const { addChildNode, addChildNodeBelow, updateNodeLabel, deleteNode, setSelectedNodeId, editingNodeId, setEditingNodeId, updateNodeScale } = useMindmapStore(
     useShallow((s) => ({
       addChildNode: s.addChildNode,
       addChildNodeBelow: s.addChildNodeBelow,
@@ -49,16 +52,44 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
       setSelectedNodeId: s.setSelectedNodeId,
       editingNodeId: s.editingNodeId,
       setEditingNodeId: s.setEditingNodeId,
+      updateNodeScale: s.updateNodeScale,
     }))
   )
   const [editing, setEditing] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [draft, setDraft] = useState(data.label)
   const inputRef = useRef<HTMLInputElement>(null)
+  const resizingRef = useRef<{ startX: number; startY: number; startScale: number; corner: string } | null>(null)
   const colors = COLOR_MAP[data.color]
   const showActions = (selected || hovered) && !editing
   const depth = data.depth ?? 0
   const sz = SIZE_MAP[Math.min(depth, SIZE_MAP.length - 1)]
+  const scale = data.scale ?? 1
+
+  const onResizeMouseDown = useCallback((e: React.MouseEvent, corner: string) => {
+    e.stopPropagation()
+    e.preventDefault()
+    resizingRef.current = { startX: e.clientX, startY: e.clientY, startScale: scale, corner }
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!resizingRef.current) return
+      const { startX, startY, startScale, corner: c } = resizingRef.current
+      const dx = c.includes('right') ? ev.clientX - startX : startX - ev.clientX
+      const dy = c.includes('bottom') ? ev.clientY - startY : startY - ev.clientY
+      const delta = (dx + dy) / 200
+      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, startScale + delta))
+      updateNodeScale(id, newScale)
+    }
+
+    const onMouseUp = () => {
+      resizingRef.current = null
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }, [id, scale, updateNodeScale])
 
   useEffect(() => { setDraft(data.label) }, [data.label])
 
@@ -102,11 +133,12 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       className="mindmap-node"
       style={{
-        minWidth: sz.minWidth,
-        maxWidth: sz.maxWidth,
-        borderRadius: sz.borderRadius,
+        minWidth: sz.minWidth * scale,
+        maxWidth: sz.maxWidth * scale,
+        borderRadius: sz.borderRadius * scale,
         background: colors.bg,
         border: `${data.borderWidth ?? sz.borderWidth}px solid ${colors.border}`,
+        padding: `${sz.paddingY * scale}px ${sz.paddingX * scale}px`,
         boxShadow: selected
           ? `0 0 0 2px #7c3aed, 0 4px 16px ${colors.glow}`
           : `0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px ${colors.border}`,
@@ -138,7 +170,7 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
             border: 'none',
             outline: 'none',
             color: colors.text,
-            fontSize: sz.fontSize,
+            fontSize: sz.fontSize * scale,
             fontWeight: sz.fontWeight,
             width: '100%',
             textAlign: 'center',
@@ -148,7 +180,7 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
         <p
           style={{
             color: colors.text,
-            fontSize: sz.fontSize,
+            fontSize: sz.fontSize * scale,
             fontWeight: sz.fontWeight,
             margin: 0,
             textAlign: 'center',
@@ -235,6 +267,30 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* リサイズハンドル（選択・ホバー時） */}
+      {(selected || hovered) && !editing && (
+        <>
+          {[
+            { corner: 'top-left',     style: { top: -5, left: -5 },     cursor: 'nw-resize' },
+            { corner: 'top-right',    style: { top: -5, right: -5 },    cursor: 'ne-resize' },
+            { corner: 'bottom-left',  style: { bottom: -5, left: -5 },  cursor: 'sw-resize' },
+            { corner: 'bottom-right', style: { bottom: -5, right: -5 }, cursor: 'se-resize' },
+          ].map(({ corner, style, cursor }) => (
+            <div
+              key={corner}
+              className="nodrag"
+              onMouseDown={(e) => onResizeMouseDown(e, corner)}
+              style={{
+                position: 'absolute', ...style,
+                width: 10, height: 10, borderRadius: '50%',
+                background: '#ffffff', border: '1.5px solid rgba(124,58,237,0.6)',
+                cursor, zIndex: 30, boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+              }}
+            />
+          ))}
+        </>
+      )}
 
       {/* 削除ボタン */}
       <AnimatePresence>
