@@ -16,10 +16,10 @@ const COLOR_MAP: Record<NodeColor, { bg: string; border: string; glow: string; t
 
 // depth 0 = root（最大）、depth が深くなるほど小さく
 const SIZE_MAP = [
-  { minWidth: 200, maxWidth: 280, fontSize: 18, fontWeight: 700, padding: '20px 28px', borderRadius: 24, borderWidth: 2 },
-  { minWidth: 150, maxWidth: 210, fontSize: 15, fontWeight: 600, padding: '14px 20px', borderRadius: 18, borderWidth: 1.5 },
-  { minWidth: 120, maxWidth: 170, fontSize: 13, fontWeight: 500, padding: '10px 14px', borderRadius: 13, borderWidth: 1.5 },
-  { minWidth: 100, maxWidth: 150, fontSize: 12, fontWeight: 500, padding: '8px 12px',  borderRadius: 10, borderWidth: 1 },
+  { minWidth: 200, maxWidth: 280, fontSize: 18, fontWeight: 700, paddingV: 20, paddingH: 28, borderRadius: 24, borderWidth: 2 },
+  { minWidth: 150, maxWidth: 210, fontSize: 15, fontWeight: 600, paddingV: 14, paddingH: 20, borderRadius: 18, borderWidth: 1.5 },
+  { minWidth: 120, maxWidth: 170, fontSize: 13, fontWeight: 500, paddingV: 10, paddingH: 14, borderRadius: 13, borderWidth: 1.5 },
+  { minWidth: 100, maxWidth: 150, fontSize: 12, fontWeight: 500, paddingV: 8,  paddingH: 12, borderRadius: 10, borderWidth: 1 },
 ]
 
 const ADD_BTN: React.CSSProperties = {
@@ -111,7 +111,7 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
         boxShadow: selected
           ? `0 0 0 2px #7c3aed, 0 4px 16px ${colors.glow}`
           : `0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px ${colors.border}`,
-        padding: sz.padding,
+        padding: `${sz.paddingV * scale}px ${sz.paddingH * scale}px`,
         cursor: 'grab',
         userSelect: 'none',
         position: 'relative',

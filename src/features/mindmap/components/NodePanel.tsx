@@ -157,20 +157,47 @@ export function NodePanel() {
                     <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
                       大きさ
                     </p>
-                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{Math.round(selectedNodeSizeScale * 100)}%</span>
+                    <span style={{ fontSize: 11, color: selectedNodeSizeScale === 1 ? '#7c3aed' : '#94a3b8', fontWeight: selectedNodeSizeScale === 1 ? 700 : 400 }}>
+                      {Math.round(selectedNodeSizeScale * 100)}%
+                    </span>
                   </div>
-                  <input
-                    type="range"
-                    min={0.5}
-                    max={2}
-                    step={0.05}
-                    value={selectedNodeSizeScale}
-                    onChange={(e) => selectedNodeId && updateNodeSizeScale(selectedNodeId, parseFloat(e.target.value))}
-                    style={{ width: '100%', accentColor: '#7c3aed', cursor: 'pointer' }}
-                  />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+                  {/* スライダー：内部値0〜2、中央(1)が100%デフォルト */}
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="range"
+                      min={0}
+                      max={2}
+                      step={0.01}
+                      value={selectedNodeSizeScale <= 1
+                        ? (selectedNodeSizeScale - 0.5) * 2
+                        : 1 + (selectedNodeSizeScale - 1) / 2}
+                      onChange={(e) => {
+                        if (!selectedNodeId) return
+                        const v = parseFloat(e.target.value)
+                        const scale = v <= 1 ? 0.5 + v * 0.5 : 1 + (v - 1) * 2
+                        updateNodeSizeScale(selectedNodeId, Math.round(scale * 100) / 100)
+                      }}
+                      style={{ width: '100%', accentColor: '#7c3aed', cursor: 'pointer' }}
+                    />
+                    {/* デフォルト（100%）の目印 */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 1,
+                      pointerEvents: 'none',
+                    }}>
+                      <div style={{ width: 1, height: 4, background: '#cbd5e1' }} />
+                      <span style={{ fontSize: 9, color: '#cbd5e1', whiteSpace: 'nowrap' }}>初期値</span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
                     <span style={{ fontSize: 10, color: '#cbd5e1' }}>50%</span>
-                    <span style={{ fontSize: 10, color: '#cbd5e1' }}>200%</span>
+                    <span style={{ fontSize: 10, color: '#cbd5e1' }}>300%</span>
                   </div>
                 </div>
 
