@@ -20,12 +20,16 @@ export interface MindmapNodeData extends Record<string, unknown> {
   depth?: number
   memo?: string
   borderWidth?: number
+  borderRadius?: number
   sizeScale?: number
 }
+
+export type MapType = 'linear' | 'free'
 
 export interface Sheet {
   id: string
   name: string
+  mapType?: MapType
   nodes: Node<MindmapNodeData>[]
   edges: Edge[]
 }
@@ -40,6 +44,8 @@ interface MindmapStore {
   defaultNodeColor: NodeColor | null
   isSaving: boolean
   layoutSnapshot: Node<MindmapNodeData>[] | null
+  templateModalOpen: boolean
+  templateModalMode: 'init' | 'new'
 
   onNodesChange: (changes: NodeChange[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
@@ -47,6 +53,7 @@ interface MindmapStore {
 
   addChildNode: (parentId: string) => void
   addChildNodeBelow: (parentId: string) => void
+  addChildNodeInDirection: (parentId: string, direction: 'left' | 'right' | 'top' | 'bottom') => void
   addSiblingNode: (nodeId: string) => void
   insertNodeBetween: (sourceId: string, targetId: string, edgeId: string, sourceHandle: string, targetHandle: string) => void
   tidyLayout: () => void
@@ -56,6 +63,7 @@ interface MindmapStore {
   updateNodeColor: (id: string, color: NodeColor) => void
   updateNodeMemo: (id: string, memo: string) => void
   updateNodeBorderWidth: (id: string, borderWidth: number) => void
+  updateNodeBorderRadius: (id: string, borderRadius: number) => void
   updateNodeSizeScale: (id: string, sizeScale: number) => void
   deleteNode: (id: string) => void
   setSelectedNodeId: (id: string | null) => void
@@ -64,7 +72,10 @@ interface MindmapStore {
   setIsSaving: (v: boolean) => void
   resetMindmap: () => void
 
-  addSheet: () => void
+  openTemplateModal: (mode: 'init' | 'new') => void
+  closeTemplateModal: () => void
+  setCurrentSheetMapType: (mapType: MapType) => void
+  addSheet: (mapType: MapType) => void
   deleteSheet: (id: string) => void
   renameSheet: (id: string, name: string) => void
   switchSheet: (id: string) => void
@@ -132,6 +143,8 @@ export const useMindmapStore = create<MindmapStore>()(
       edges: initialSheet.edges,
       selectedNodeId: null,
       editingNodeId: null,
+      templateModalOpen: false,
+      templateModalMode: 'init' as const,
       defaultNodeColor: null,
       isSaving: false,
       layoutSnapshot: null,
@@ -249,6 +262,68 @@ export const useMindmapStore = create<MindmapStore>()(
           target: newId,
           sourceHandle: 'bottom',
           targetHandle: 'top',
+          type: 'interactive',
+          style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 },
+        }
+
+        set({
+          nodes: [...nodes, newNode],
+          edges: [...edges, newEdge],
+          selectedNodeId: newId,
+          editingNodeId: newId,
+        })
+      },
+
+      addChildNodeInDirection: (parentId, direction) => {
+        const { nodes, edges } = get()
+        const parent = nodes.find((n) => n.id === parentId)
+        if (!parent) return
+
+        const sourceHandle = direction
+        const targetHandle = direction === 'right' ? 'left' : direction === 'left' ? 'right' : direction === 'bottom' ? 'top' : 'bottom'
+
+        const siblings = edges
+          .filter((e) => e.source === parentId && e.sourceHandle === direction)
+          .map((e) => nodes.find((n) => n.id === e.target))
+          .filter((n): n is Node<MindmapNodeData> => !!n)
+
+        const isHorizontal = direction === 'right' || direction === 'left'
+        const sign = direction === 'right' || direction === 'bottom' ? 1 : -1
+
+        let basePos: { x: number; y: number }
+        if (isHorizontal) {
+          const sorted = siblings.sort((a, b) => a.position.y - b.position.y)
+          const baseY = sorted.length === 0
+            ? parent.position.y
+            : sorted[sorted.length - 1].position.y + NODE_H + PADDING
+          basePos = { x: parent.position.x + sign * (NODE_W + PADDING), y: baseY }
+        } else {
+          const sorted = siblings.sort((a, b) => a.position.x - b.position.x)
+          const baseX = sorted.length === 0
+            ? parent.position.x
+            : sorted[sorted.length - 1].position.x + NODE_W + PADDING
+          basePos = { x: baseX, y: parent.position.y + sign * (NODE_H + PADDING) }
+        }
+
+        const position = avoidCollision(basePos, nodes, isHorizontal ? 'y' : 'x')
+        const colorIndex = nodes.length % COLORS.length
+        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
+        const newId = generateId()
+        const parentDepth = parent.data.depth ?? 0
+
+        const newNode: Node<MindmapNodeData> = {
+          id: newId,
+          type: 'mindmapNode',
+          position,
+          data: { label: 'アイデア', color: nodeColor, depth: parentDepth + 1 },
+        }
+
+        const newEdge: Edge = {
+          id: `edge-${parentId}-${newId}`,
+          source: parentId,
+          target: newId,
+          sourceHandle,
+          targetHandle,
           type: 'interactive',
           style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 },
         }
@@ -543,6 +618,14 @@ export const useMindmapStore = create<MindmapStore>()(
         })
       },
 
+      updateNodeBorderRadius: (id, borderRadius) => {
+        set({
+          nodes: get().nodes.map((n) =>
+            n.id === id ? { ...n, data: { ...n.data, borderRadius } } : n
+          ),
+        })
+      },
+
       updateNodeSizeScale: (id, sizeScale) => {
         set({
           nodes: get().nodes.map((n) =>
@@ -609,7 +692,18 @@ export const useMindmapStore = create<MindmapStore>()(
         set({ nodes: fresh, edges: [], selectedNodeId: null })
       },
 
-      addSheet: () => {
+      openTemplateModal: (mode) => set({ templateModalOpen: true, templateModalMode: mode }),
+      closeTemplateModal: () => set({ templateModalOpen: false }),
+
+      setCurrentSheetMapType: (mapType) => {
+        const { sheets, currentSheetId } = get()
+        set({
+          sheets: sheets.map((s) => s.id === currentSheetId ? { ...s, mapType } : s),
+          templateModalOpen: false,
+        })
+      },
+
+      addSheet: (mapType) => {
         const { sheets, currentSheetId, nodes, edges } = get()
         const updatedSheets = sheets.map((s) =>
           s.id === currentSheetId ? { ...s, nodes, edges } : s
@@ -617,6 +711,7 @@ export const useMindmapStore = create<MindmapStore>()(
         const newSheet: Sheet = {
           id: generateSheetId(),
           name: `シート${updatedSheets.length + 1}`,
+          mapType,
           nodes: makeInitialNodes(),
           edges: [],
         }
@@ -626,6 +721,7 @@ export const useMindmapStore = create<MindmapStore>()(
           nodes: newSheet.nodes,
           edges: newSheet.edges,
           selectedNodeId: null,
+          templateModalOpen: false,
         })
       },
 

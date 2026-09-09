@@ -16,10 +16,10 @@ const COLOR_MAP: Record<NodeColor, { bg: string; border: string; glow: string; t
 
 // depth 0 = root（最大）、depth が深くなるほど小さく
 const SIZE_MAP = [
-  { minWidth: 200, maxWidth: 280, fontSize: 18, fontWeight: 700, paddingV: 20, paddingH: 28, borderRadius: 24, borderWidth: 2 },
-  { minWidth: 150, maxWidth: 210, fontSize: 15, fontWeight: 600, paddingV: 14, paddingH: 20, borderRadius: 18, borderWidth: 1.5 },
-  { minWidth: 120, maxWidth: 170, fontSize: 13, fontWeight: 500, paddingV: 10, paddingH: 14, borderRadius: 13, borderWidth: 1.5 },
-  { minWidth: 100, maxWidth: 150, fontSize: 12, fontWeight: 500, paddingV: 8,  paddingH: 12, borderRadius: 10, borderWidth: 1 },
+  { minWidth: 200, maxWidth: 280, fontSize: 18, fontWeight: 700, paddingV: 20, paddingH: 28, borderRadius: 36, borderWidth: 2 },
+  { minWidth: 150, maxWidth: 210, fontSize: 15, fontWeight: 600, paddingV: 14, paddingH: 20, borderRadius: 32, borderWidth: 1.5 },
+  { minWidth: 120, maxWidth: 170, fontSize: 13, fontWeight: 500, paddingV: 10, paddingH: 14, borderRadius: 28, borderWidth: 1.5 },
+  { minWidth: 100, maxWidth: 150, fontSize: 12, fontWeight: 500, paddingV: 8,  paddingH: 12, borderRadius: 24, borderWidth: 1 },
 ]
 
 const ADD_BTN: React.CSSProperties = {
@@ -111,7 +111,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
         minWidth: sz.minWidth,
         minHeight: sz.paddingV * 2 + sz.fontSize * 2,
         boxSizing: 'border-box',
-        borderRadius: sz.borderRadius,
+        borderRadius: data.borderRadius ?? sz.borderRadius,
         background: colors.bg,
         border: `${data.borderWidth ?? sz.borderWidth}px solid ${colors.border}`,
         boxShadow: selected

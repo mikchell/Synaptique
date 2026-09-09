@@ -22,9 +22,11 @@ export function NodePanel() {
   const selectedNodeColor = selectedNode?.data.color ?? null
   const selectedNodeMemo = selectedNode?.data.memo ?? ''
   const selectedNodeBorderWidth = selectedNode?.data.borderWidth ?? null
+  const selectedNodeBorderRadius = selectedNode?.data.borderRadius ?? null
   const updateNodeColor = useMindmapStore((s) => s.updateNodeColor)
   const updateNodeMemo = useMindmapStore((s) => s.updateNodeMemo)
   const updateNodeBorderWidth = useMindmapStore((s) => s.updateNodeBorderWidth)
+  const updateNodeBorderRadius = useMindmapStore((s) => s.updateNodeBorderRadius)
   const defaultNodeColor = useMindmapStore((s) => s.defaultNodeColor)
   const setDefaultNodeColor = useMindmapStore((s) => s.setDefaultNodeColor)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -175,6 +177,45 @@ export function NodePanel() {
                         }} />
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* 角の丸さ */}
+                <div style={{ marginTop: 16, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
+                  <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px 0' }}>
+                    角の丸さ
+                  </p>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {([0, 8, 20, 32, 999] as const).map((r) => {
+                      const isActive = selectedNodeBorderRadius === r
+                      const label = r === 999 ? '●' : r === 0 ? '■' : null
+                      return (
+                        <button
+                          key={r}
+                          onClick={() => selectedNodeId && updateNodeBorderRadius(selectedNodeId, r)}
+                          title={r === 999 ? '完全な丸' : `${r}px`}
+                          style={{
+                            flex: 1, height: 32, borderRadius: 8,
+                            background: isActive ? 'rgba(124,58,237,0.12)' : 'rgba(0,0,0,0.04)',
+                            border: isActive ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid transparent',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.15s ease',
+                            padding: 0,
+                          }}
+                        >
+                          {label ? (
+                            <span style={{ fontSize: r === 999 ? 14 : 12, color: isActive ? '#7c3aed' : '#94a3b8' }}>{label}</span>
+                          ) : (
+                            <div style={{
+                              width: 18, height: 18,
+                              borderRadius: r,
+                              border: `2px solid ${isActive ? '#7c3aed' : '#94a3b8'}`,
+                              background: 'transparent',
+                            }} />
+                          )}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
 
