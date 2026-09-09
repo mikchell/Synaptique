@@ -1,4 +1,4 @@
-import { Handle, Position, type Node, type NodeProps, NodeResizer } from '@xyflow/react'
+import { Handle, Position, type Node, type NodeProps, NodeResizeControl } from '@xyflow/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trash2, StickyNote } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
@@ -129,19 +129,21 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <NodeResizer
-        isVisible={selected}
-        minWidth={sz.minWidth}
-        minHeight={sz.paddingV * 2 + sz.fontSize * 2}
-        handleStyle={{
-          width: 10, height: 10,
-          borderRadius: '50%',
-          background: 'white',
-          border: '2px solid #7c3aed',
-          boxShadow: '0 1px 4px rgba(124,58,237,0.3)',
-        }}
-        lineStyle={{ borderColor: 'rgba(124,58,237,0.35)', borderWidth: 1, borderStyle: 'dashed' }}
-      />
+      {selected && (['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => (
+        <NodeResizeControl
+          key={pos}
+          position={pos}
+          minWidth={sz.minWidth}
+          minHeight={sz.paddingV * 2 + sz.fontSize * 2}
+          style={{
+            width: 10, height: 10,
+            borderRadius: '50%',
+            background: 'white',
+            border: '2px solid #7c3aed',
+            boxShadow: '0 1px 4px rgba(124,58,237,0.3)',
+          }}
+        />
+      ))}
       <Handle id="left"   type="target" position={Position.Left}   style={{ opacity: 0, pointerEvents: 'none' }} />
       <Handle id="right"  type="source" position={Position.Right}  style={{ opacity: 0, pointerEvents: 'none' }} />
       <Handle id="top"    type="target" position={Position.Top}    style={{ opacity: 0, pointerEvents: 'none' }} />
