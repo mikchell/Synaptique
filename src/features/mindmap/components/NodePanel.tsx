@@ -182,40 +182,26 @@ export function NodePanel() {
 
                 {/* 角の丸さ */}
                 <div style={{ marginTop: 16, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
-                  <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px 0' }}>
-                    角の丸さ
-                  </p>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {([0, 8, 20, 32, 999] as const).map((r) => {
-                      const isActive = selectedNodeBorderRadius === r
-                      const label = r === 999 ? '●' : r === 0 ? '■' : null
-                      return (
-                        <button
-                          key={r}
-                          onClick={() => selectedNodeId && updateNodeBorderRadius(selectedNodeId, r)}
-                          title={r === 999 ? '完全な丸' : `${r}px`}
-                          style={{
-                            flex: 1, height: 32, borderRadius: 8,
-                            background: isActive ? 'rgba(124,58,237,0.12)' : 'rgba(0,0,0,0.04)',
-                            border: isActive ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid transparent',
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            transition: 'all 0.15s ease',
-                            padding: 0,
-                          }}
-                        >
-                          {label ? (
-                            <span style={{ fontSize: r === 999 ? 14 : 12, color: isActive ? '#7c3aed' : '#94a3b8' }}>{label}</span>
-                          ) : (
-                            <div style={{
-                              width: 18, height: 18,
-                              borderRadius: r,
-                              border: `2px solid ${isActive ? '#7c3aed' : '#94a3b8'}`,
-                              background: 'transparent',
-                            }} />
-                          )}
-                        </button>
-                      )
-                    })}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
+                      角の丸さ
+                    </p>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                      {selectedNodeBorderRadius !== null ? `${selectedNodeBorderRadius}px` : 'デフォルト'}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={64}
+                    step={1}
+                    value={selectedNodeBorderRadius ?? 18}
+                    onChange={(e) => selectedNodeId && updateNodeBorderRadius(selectedNodeId, parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#7c3aed', cursor: 'pointer' }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+                    <span style={{ fontSize: 10, color: '#cbd5e1' }}>■</span>
+                    <span style={{ fontSize: 10, color: '#cbd5e1' }}>●</span>
                   </div>
                 </div>
 
