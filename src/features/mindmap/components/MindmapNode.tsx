@@ -40,17 +40,21 @@ const ADD_BTN: React.CSSProperties = {
 }
 
 function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<Node<MindmapNodeData>>) {
-  const { addChildNode, addChildNodeBelow, updateNodeLabel, deleteNode, setSelectedNodeId, editingNodeId, setEditingNodeId } = useMindmapStore(
+  const { addChildNode, addChildNodeBelow, addChildNodeInDirection, updateNodeLabel, deleteNode, setSelectedNodeId, editingNodeId, setEditingNodeId, sheets, currentSheetId } = useMindmapStore(
     useShallow((s) => ({
       addChildNode: s.addChildNode,
       addChildNodeBelow: s.addChildNodeBelow,
+      addChildNodeInDirection: s.addChildNodeInDirection,
       updateNodeLabel: s.updateNodeLabel,
       deleteNode: s.deleteNode,
       setSelectedNodeId: s.setSelectedNodeId,
       editingNodeId: s.editingNodeId,
       setEditingNodeId: s.setEditingNodeId,
+      sheets: s.sheets,
+      currentSheetId: s.currentSheetId,
     }))
   )
+  const mapType = sheets.find((s) => s.id === currentSheetId)?.mapType ?? 'linear'
   const [editing, setEditing] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [draft, setDraft] = useState(data.label)
@@ -284,41 +288,72 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
         )}
       </AnimatePresence>
 
-      {/* 右の + ボタン → 子ノード追加（次の世代） */}
-      <AnimatePresence>
-        {showActions && (
-          <motion.button
-            key="add-right"
-            initial={{ opacity: 0, scale: 0.6 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.6 }}
-            transition={{ duration: 0.12 }}
-            onClick={(e) => { e.stopPropagation(); addChildNode(id) }}
-            style={{ ...ADD_BTN, right: -11, top: '50%', marginTop: -11 }}
-            title="子ノードを追加"
-          >
-            <Plus size={13} />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {mapType === 'linear' ? (
+        <>
+          {/* 右の + ボタン */}
+          <AnimatePresence>
+            {showActions && (
+              <motion.button
+                key="add-right"
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.6 }}
+                transition={{ duration: 0.12 }}
+                onClick={(e) => { e.stopPropagation(); addChildNode(id) }}
+                style={{ ...ADD_BTN, right: -11, top: '50%', marginTop: -11 }}
+                title="子ノードを追加"
+              >
+                <Plus size={13} />
+              </motion.button>
+            )}
+          </AnimatePresence>
 
-      {/* 下の + ボタン → 子ノード追加（下方向） */}
-      <AnimatePresence>
-        {showActions && (
-          <motion.button
-            key="add-bottom"
-            initial={{ opacity: 0, scale: 0.6 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.6 }}
-            transition={{ duration: 0.12 }}
-            onClick={(e) => { e.stopPropagation(); addChildNodeBelow(id) }}
-            style={{ ...ADD_BTN, bottom: -11, left: '50%', marginLeft: -11 }}
-            title="下に子ノードを追加"
-          >
-            <Plus size={13} />
-          </motion.button>
-        )}
-      </AnimatePresence>
+          {/* 下の + ボタン */}
+          <AnimatePresence>
+            {showActions && (
+              <motion.button
+                key="add-bottom"
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.6 }}
+                transition={{ duration: 0.12 }}
+                onClick={(e) => { e.stopPropagation(); addChildNodeBelow(id) }}
+                style={{ ...ADD_BTN, bottom: -11, left: '50%', marginLeft: -11 }}
+                title="下に子ノードを追加"
+              >
+                <Plus size={13} />
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </>
+      ) : (
+        /* フリーモード: 上下左右 + ボタン */
+        <AnimatePresence>
+          {showActions && (
+            <>
+              {([
+                { dir: 'right',  style: { right: -11, top: '50%', marginTop: -11 },   title: '右に追加' },
+                { dir: 'left',   style: { left:  -11, top: '50%', marginTop: -11 },   title: '左に追加' },
+                { dir: 'bottom', style: { bottom: -11, left: '50%', marginLeft: -11 }, title: '下に追加' },
+                { dir: 'top',    style: { top:   -11, left: '50%', marginLeft: -11 }, title: '上に追加' },
+              ] as const).map(({ dir, style, title }) => (
+                <motion.button
+                  key={`add-${dir}`}
+                  initial={{ opacity: 0, scale: 0.6 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.6 }}
+                  transition={{ duration: 0.12 }}
+                  onClick={(e) => { e.stopPropagation(); addChildNodeInDirection(id, dir) }}
+                  style={{ ...ADD_BTN, ...style }}
+                  title={title}
+                >
+                  <Plus size={13} />
+                </motion.button>
+              ))}
+            </>
+          )}
+        </AnimatePresence>
+      )}
 
     </motion.div>
   )

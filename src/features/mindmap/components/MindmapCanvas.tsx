@@ -21,6 +21,7 @@ import { Toolbar } from './Toolbar'
 import { HelpHint } from './HelpHint'
 import { SheetTabs } from './SheetTabs'
 import { Tutorial } from './Tutorial'
+import { TemplateSelectModal } from './TemplateSelectModal'
 
 const nodeTypes = { mindmapNode: MindmapNode }
 const edgeTypes = { interactive: InteractiveEdge, default: InteractiveEdge }
@@ -38,7 +39,7 @@ const getMinimapNodeColor = (node: { data: unknown }) =>
 
 function MindmapFlow() {
   const { user } = useAuth()
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setSelectedNodeId, editingNodeId } =
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setSelectedNodeId, editingNodeId, sheets, currentSheetId, openTemplateModal } =
     useMindmapStore(
       useShallow((s) => ({
         nodes: s.nodes,
@@ -48,12 +49,23 @@ function MindmapFlow() {
         onConnect: s.onConnect,
         setSelectedNodeId: s.setSelectedNodeId,
         editingNodeId: s.editingNodeId,
+        sheets: s.sheets,
+        currentSheetId: s.currentSheetId,
+        openTemplateModal: s.openTemplateModal,
       }))
     )
   const { setCenter, getZoom } = useReactFlow()
   const isMobile = useIsMobile()
 
   useSheetsSync(user ?? null)
+
+  // 現在のシートにmapTypeが未設定なら初回テンプレート選択を促す
+  useEffect(() => {
+    const currentSheet = sheets.find((s) => s.id === currentSheetId)
+    if (currentSheet && !currentSheet.mapType) {
+      openTemplateModal('init')
+    }
+  }, [currentSheetId, sheets, openTemplateModal])
 
   const handlePaneClick = useCallback(() => setSelectedNodeId(null), [setSelectedNodeId])
 
@@ -108,6 +120,7 @@ function MindmapFlow() {
       <HelpHint />
       <SheetTabs />
       <Tutorial />
+      <TemplateSelectModal />
     </div>
   )
 }

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMindmapStore } from '../store/mindmapStore'
 
 export function SheetTabs() {
-  const { sheets, currentSheetId, addSheet, deleteSheet, renameSheet, switchSheet } =
+  const { sheets, currentSheetId, deleteSheet, renameSheet, switchSheet, openTemplateModal } =
     useMindmapStore()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
@@ -211,7 +211,7 @@ export function SheetTabs() {
       {/* 追加ボタン（常に右端に固定） */}
       <div style={{ paddingRight: 12, paddingLeft: 4, flexShrink: 0 }}>
         <button
-          onClick={addSheet}
+          onClick={() => openTemplateModal('new')}
           title="シートを追加"
           style={{
             display: 'flex',
