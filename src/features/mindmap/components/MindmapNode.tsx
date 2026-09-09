@@ -59,6 +59,7 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
   const showActions = (selected || hovered) && !editing
   const depth = data.depth ?? 0
   const sz = SIZE_MAP[Math.min(depth, SIZE_MAP.length - 1)]
+  const scale = data.sizeScale ?? 1
 
   useEffect(() => { setDraft(data.label) }, [data.label])
 
@@ -102,9 +103,9 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       className="mindmap-node"
       style={{
-        minWidth: sz.minWidth,
-        maxWidth: sz.maxWidth,
-        borderRadius: sz.borderRadius,
+        minWidth: sz.minWidth * scale,
+        maxWidth: sz.maxWidth * scale,
+        borderRadius: sz.borderRadius * scale,
         background: colors.bg,
         border: `${data.borderWidth ?? sz.borderWidth}px solid ${colors.border}`,
         boxShadow: selected
@@ -115,6 +116,8 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
         userSelect: 'none',
         position: 'relative',
         transition: 'box-shadow 0.2s ease',
+        fontSize: sz.fontSize * scale,
+        fontWeight: sz.fontWeight,
       }}
       onDoubleClick={() => setEditing(true)}
       onClick={() => setSelectedNodeId(id)}
@@ -138,7 +141,7 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
             border: 'none',
             outline: 'none',
             color: colors.text,
-            fontSize: sz.fontSize,
+            fontSize: sz.fontSize * scale,
             fontWeight: sz.fontWeight,
             width: '100%',
             textAlign: 'center',
@@ -148,7 +151,7 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
         <p
           style={{
             color: colors.text,
-            fontSize: sz.fontSize,
+            fontSize: sz.fontSize * scale,
             fontWeight: sz.fontWeight,
             margin: 0,
             textAlign: 'center',
