@@ -379,33 +379,45 @@ export const useMindmapStore = create<MindmapStore>()(
         const { nodes, edges } = get()
         const isMobile = window.innerWidth < 768
 
-        const NODE_H = isMobile ? 44 : 60
-        const V_GAP  = isMobile ? 52 : 80
-        const H_STEP = isMobile ? 160 : 240
+        const DEFAULT_W = isMobile ? 130 : 180
+        const DEFAULT_H = isMobile ? 44 : 60
+        const V_GAP = isMobile ? 20 : 30   // ノード間の縦の隙間
+        const H_GAP = isMobile ? 24 : 48   // 親右端〜子左端の横の隙間
+
+        // 実際のサイズを取得（リサイズ済みならそのサイズ、未設定はデフォルト）
+        const nodeSize = (id: string) => {
+          const n = nodes.find((nd) => nd.id === id)
+          return {
+            w: n?.width ?? n?.measured?.width ?? DEFAULT_W,
+            h: n?.height ?? n?.measured?.height ?? DEFAULT_H,
+          }
+        }
 
         const childrenOf = (id: string) =>
           edges.filter((e) => e.source === id).map((e) => e.target as string)
 
+        // サブツリーが占める縦幅（ノード自身 or 子の合計、大きい方）
         const subtreeHeight = (id: string): number => {
           const children = childrenOf(id)
-          if (children.length === 0) return NODE_H
-          const total = children.reduce((sum, c) => sum + subtreeHeight(c), 0)
-          return total + (children.length - 1) * V_GAP
+          const { h } = nodeSize(id)
+          if (children.length === 0) return h
+          const childTotal = children.reduce((s, c) => s + subtreeHeight(c), 0) + (children.length - 1) * V_GAP
+          return Math.max(h, childTotal)
         }
 
         const positions: Record<string, { x: number; y: number }> = {}
 
-        const layout = (id: string, y: number, depth: number) => {
-          positions[id] = { x: depth * H_STEP, y }
+        // centerY: このサブツリーの中心Y、x: このノードの左端X
+        const layout = (id: string, centerY: number, x: number) => {
+          const { w, h } = nodeSize(id)
+          positions[id] = { x, y: centerY - h / 2 }   // top-left基準
           const children = childrenOf(id)
-          const totalH =
-            children.reduce((s, c) => s + subtreeHeight(c), 0) +
-            (children.length - 1) * V_GAP
-          let curY = y - totalH / 2
+          const totalH = children.reduce((s, c) => s + subtreeHeight(c), 0) + (children.length - 1) * V_GAP
+          let curY = centerY - totalH / 2
           for (const c of children) {
-            const h = subtreeHeight(c)
-            layout(c, curY + h / 2, depth + 1)
-            curY += h + V_GAP
+            const ch = subtreeHeight(c)
+            layout(c, curY + ch / 2, x + w + H_GAP)
+            curY += ch + V_GAP
           }
         }
 
@@ -450,36 +462,48 @@ export const useMindmapStore = create<MindmapStore>()(
         const subRoots = selectedNodes.filter((n) => !hasParentInSelection.has(n.id))
 
         const isMobile = window.innerWidth < 768
-        const NODE_H_S = isMobile ? 44 : 60
-        const V_GAP_S  = isMobile ? 52 : 80
-        const H_STEP_S = isMobile ? 160 : 240
+        const DEFAULT_W_S = isMobile ? 130 : 180
+        const DEFAULT_H_S = isMobile ? 44 : 60
+        const V_GAP_S = isMobile ? 20 : 30
+        const H_GAP_S = isMobile ? 24 : 48
+
+        const nodeSize = (id: string) => {
+          const n = nodes.find((nd) => nd.id === id)
+          return {
+            w: n?.width ?? n?.measured?.width ?? DEFAULT_W_S,
+            h: n?.height ?? n?.measured?.height ?? DEFAULT_H_S,
+          }
+        }
 
         const childrenOf = (id: string) =>
           selectedEdges.filter((e) => e.source === id).map((e) => e.target)
 
         const subtreeHeight = (id: string): number => {
           const children = childrenOf(id)
-          if (children.length === 0) return NODE_H_S
-          return children.reduce((sum, c) => sum + subtreeHeight(c), 0) + (children.length - 1) * V_GAP_S
+          const { h } = nodeSize(id)
+          if (children.length === 0) return h
+          const childTotal = children.reduce((s, c) => s + subtreeHeight(c), 0) + (children.length - 1) * V_GAP_S
+          return Math.max(h, childTotal)
         }
 
         const positions: Record<string, { x: number; y: number }> = {}
 
-        const layout = (id: string, y: number, depth: number, baseX: number) => {
-          positions[id] = { x: baseX + depth * H_STEP_S, y }
+        const layout = (id: string, centerY: number, x: number) => {
+          const { w, h } = nodeSize(id)
+          positions[id] = { x, y: centerY - h / 2 }
           const children = childrenOf(id)
-          const totalH =
-            children.reduce((s, c) => s + subtreeHeight(c), 0) + (children.length - 1) * V_GAP_S
-          let curY = y - totalH / 2
+          const totalH = children.reduce((s, c) => s + subtreeHeight(c), 0) + (children.length - 1) * V_GAP_S
+          let curY = centerY - totalH / 2
           for (const c of children) {
-            const h = subtreeHeight(c)
-            layout(c, curY + h / 2, depth + 1, baseX)
-            curY += h + V_GAP_S
+            const ch = subtreeHeight(c)
+            layout(c, curY + ch / 2, x + w + H_GAP_S)
+            curY += ch + V_GAP_S
           }
         }
 
         for (const subRoot of subRoots) {
-          layout(subRoot.id, subRoot.position.y, 0, subRoot.position.x)
+          const { h } = nodeSize(subRoot.id)
+          layout(subRoot.id, subRoot.position.y + h / 2, subRoot.position.x)
         }
 
         set({

@@ -1,4 +1,4 @@
-import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
+import { Handle, Position, type Node, type NodeProps, NodeResizeControl } from '@xyflow/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trash2, StickyNote } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
@@ -16,10 +16,10 @@ const COLOR_MAP: Record<NodeColor, { bg: string; border: string; glow: string; t
 
 // depth 0 = root（最大）、depth が深くなるほど小さく
 const SIZE_MAP = [
-  { minWidth: 200, maxWidth: 280, fontSize: 18, fontWeight: 700, padding: '20px 28px', borderRadius: 24, borderWidth: 2 },
-  { minWidth: 150, maxWidth: 210, fontSize: 15, fontWeight: 600, padding: '14px 20px', borderRadius: 18, borderWidth: 1.5 },
-  { minWidth: 120, maxWidth: 170, fontSize: 13, fontWeight: 500, padding: '10px 14px', borderRadius: 13, borderWidth: 1.5 },
-  { minWidth: 100, maxWidth: 150, fontSize: 12, fontWeight: 500, padding: '8px 12px',  borderRadius: 10, borderWidth: 1 },
+  { minWidth: 200, maxWidth: 280, fontSize: 18, fontWeight: 700, paddingV: 20, paddingH: 28, borderRadius: 24, borderWidth: 2 },
+  { minWidth: 150, maxWidth: 210, fontSize: 15, fontWeight: 600, paddingV: 14, paddingH: 20, borderRadius: 18, borderWidth: 1.5 },
+  { minWidth: 120, maxWidth: 170, fontSize: 13, fontWeight: 500, paddingV: 10, paddingH: 14, borderRadius: 13, borderWidth: 1.5 },
+  { minWidth: 100, maxWidth: 150, fontSize: 12, fontWeight: 500, paddingV: 8,  paddingH: 12, borderRadius: 10, borderWidth: 1 },
 ]
 
 const ADD_BTN: React.CSSProperties = {
@@ -39,7 +39,7 @@ const ADD_BTN: React.CSSProperties = {
   padding: 0,
 }
 
-function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNodeData>>) {
+function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<Node<MindmapNodeData>>) {
   const { addChildNode, addChildNodeBelow, updateNodeLabel, deleteNode, setSelectedNodeId, editingNodeId, setEditingNodeId } = useMindmapStore(
     useShallow((s) => ({
       addChildNode: s.addChildNode,
@@ -57,9 +57,12 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
   const inputRef = useRef<HTMLInputElement>(null)
   const colors = COLOR_MAP[data.color]
   const showActions = (selected || hovered) && !editing
-  const depth = data.depth ?? 0
-  const sz = SIZE_MAP[Math.min(depth, SIZE_MAP.length - 1)]
-  const scale = data.sizeScale ?? 1
+  const sz = SIZE_MAP[data.isRoot ? 0 : 1]
+  // width・height両方使って面積ベースでスケール（より追従感が出る）
+  const defaultH = sz.paddingV * 2 + sz.fontSize * 2.2
+  const scaleW = width ? width / sz.minWidth : 1
+  const scaleH = height ? height / defaultH : 1
+  const fontSize = Math.round(sz.fontSize * Math.sqrt(scaleW * scaleH))
 
   useEffect(() => { setDraft(data.label) }, [data.label])
 
@@ -103,27 +106,50 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       className="mindmap-node"
       style={{
-        minWidth: sz.minWidth * scale,
-        maxWidth: sz.maxWidth * scale,
-        borderRadius: sz.borderRadius * scale,
+        width: '100%',
+        height: '100%',
+        minWidth: sz.minWidth,
+        minHeight: sz.paddingV * 2 + sz.fontSize * 2,
+        boxSizing: 'border-box',
+        borderRadius: sz.borderRadius,
         background: colors.bg,
         border: `${data.borderWidth ?? sz.borderWidth}px solid ${colors.border}`,
         boxShadow: selected
           ? `0 0 0 2px #7c3aed, 0 4px 16px ${colors.glow}`
           : `0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px ${colors.border}`,
-        padding: sz.padding,
+        padding: `${sz.paddingV}px ${sz.paddingH}px`,
         cursor: 'grab',
         userSelect: 'none',
         position: 'relative',
         transition: 'box-shadow 0.2s ease',
-        fontSize: sz.fontSize * scale,
+        fontSize,
         fontWeight: sz.fontWeight,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
       onDoubleClick={() => setEditing(true)}
       onClick={() => setSelectedNodeId(id)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {selected && (['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => (
+        <NodeResizeControl
+          key={pos}
+          position={pos}
+          keepAspectRatio
+          minWidth={sz.minWidth}
+          minHeight={sz.paddingV * 2 + sz.fontSize * 2}
+          style={{
+            width: 10, height: 10,
+            borderRadius: '50%',
+            background: 'white',
+            border: '2px solid #7c3aed',
+            boxShadow: '0 1px 4px rgba(124,58,237,0.3)',
+          }}
+        />
+      ))}
       <Handle id="left"   type="target" position={Position.Left}   style={{ opacity: 0, pointerEvents: 'none' }} />
       <Handle id="right"  type="source" position={Position.Right}  style={{ opacity: 0, pointerEvents: 'none' }} />
       <Handle id="top"    type="target" position={Position.Top}    style={{ opacity: 0, pointerEvents: 'none' }} />
@@ -141,7 +167,7 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
             border: 'none',
             outline: 'none',
             color: colors.text,
-            fontSize: sz.fontSize * scale,
+            fontSize,
             fontWeight: sz.fontWeight,
             width: '100%',
             textAlign: 'center',
@@ -151,7 +177,7 @@ function MindmapNodeComponent({ id, data, selected }: NodeProps<Node<MindmapNode
         <p
           style={{
             color: colors.text,
-            fontSize: sz.fontSize * scale,
+            fontSize,
             fontWeight: sz.fontWeight,
             margin: 0,
             textAlign: 'center',
