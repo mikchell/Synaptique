@@ -4,17 +4,6 @@ import { useRef, useState } from 'react'
 import { useIsMobile } from '../../../hooks/useIsMobile'
 import { type NodeColor, useMindmapStore } from '../store/mindmapStore'
 
-// sizeScale (0.5〜3.0) ↔ スライダー内部値 (0〜2) の変換
-// 内部値1がsizeScale=1.0（100%）の中央になる非線形マッピング
-const scaleToSlider = (scale: number) =>
-  scale <= 1 ? (scale - 0.5) * 2 : 1 + (scale - 1) / 2
-
-const sliderToScale = (v: number) =>
-  v <= 1 ? 0.5 + v * 0.5 : 1 + (v - 1) * 2
-
-// スライダートラック上の位置(%)を返す
-const markerPos = (scale: number) => scaleToSlider(scale) / 2 * 100
-
 const SIZE_MARKERS = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 
 const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] = [
@@ -170,88 +159,83 @@ export function NodePanel() {
                     <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
                       大きさ
                     </p>
-                    <span style={{ fontSize: 11, color: SIZE_MARKERS.includes(selectedNodeSizeScale) ? '#7c3aed' : '#94a3b8', fontWeight: SIZE_MARKERS.includes(selectedNodeSizeScale) ? 700 : 400 }}>
+                    <span style={{ fontSize: 11, color: '#7c3aed', fontWeight: 700 }}>
                       {Math.round(selectedNodeSizeScale * 100)}%
                     </span>
                   </div>
-                  {/* スライダー：内部値0〜2、中央(1)が100%デフォルト */}
-                  <div>
-                    {/* inputと丸い目印を同じ領域に重ねる */}
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type="range"
-                        min={0}
-                        max={2}
-                        step={0.01}
-                        value={scaleToSlider(selectedNodeSizeScale)}
-                        onChange={(e) => {
-                          if (!selectedNodeId) return
-                          const scale = sliderToScale(parseFloat(e.target.value))
-                          updateNodeSizeScale(selectedNodeId, Math.round(scale * 100) / 100)
-                        }}
-                        style={{ width: '100%', accentColor: '#7c3aed', cursor: 'pointer', display: 'block', position: 'relative', zIndex: 1 }}
-                      />
-                      {/* inputと完全に同じ領域を覆うオーバーレイ。丸い目印はここに置く */}
-                      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2 }}>
-                        {SIZE_MARKERS.map((markerScale) => {
-                          const isActive = Math.abs(selectedNodeSizeScale - markerScale) < 0.03
-                          const isDefault = markerScale === 1.0
-                          const pct = markerPos(markerScale)
-                          const left = `calc(${pct}% * 0.875 + 6.25%)`
-                          return (
-                            <button
-                              key={markerScale}
-                              onPointerDown={(e) => e.stopPropagation()}
-                              onClick={() => selectedNodeId && updateNodeSizeScale(selectedNodeId, markerScale)}
-                              title={`${Math.round(markerScale * 100)}%`}
-                              style={{
-                                position: 'absolute',
-                                left,
-                                top: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                width: isDefault ? 10 : 7,
-                                height: isDefault ? 10 : 7,
-                                borderRadius: '50%',
-                                background: isActive ? '#7c3aed' : isDefault ? '#c4b5fd' : '#e2e8f0',
-                                border: isActive ? '2px solid white' : isDefault ? '1.5px solid #a78bfa' : '1.5px solid #cbd5e1',
-                                boxShadow: isActive ? '0 0 0 2px #7c3aed' : 'none',
-                                cursor: 'pointer',
-                                padding: 0,
-                                pointerEvents: 'auto',
-                                transition: 'all 0.15s ease',
-                              }}
-                            />
-                          )
-                        })}
-                      </div>
-                    </div>
-                    {/* ラベル */}
-                    <div style={{ position: 'relative', height: 16, marginTop: 2 }}>
-                      {SIZE_MARKERS.map((markerScale) => {
-                        const isActive = Math.abs(selectedNodeSizeScale - markerScale) < 0.03
+                  {/* スライダー：0〜5の6段階、各ステップがSIZE_MARKERSに対応 */}
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="range"
+                      min={0}
+                      max={5}
+                      step={1}
+                      value={Math.max(0, SIZE_MARKERS.findIndex((m) => m === selectedNodeSizeScale)).toString()}
+                      onChange={(e) => {
+                        if (!selectedNodeId) return
+                        const idx = parseInt(e.target.value)
+                        updateNodeSizeScale(selectedNodeId, SIZE_MARKERS[idx])
+                      }}
+                      style={{ width: '100%', accentColor: '#7c3aed', cursor: 'pointer', display: 'block', position: 'relative', zIndex: 1 }}
+                    />
+                    {/* スライダー上の丸い目印（タップで即スナップ） */}
+                    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2 }}>
+                      {SIZE_MARKERS.map((markerScale, idx) => {
+                        const isActive = selectedNodeSizeScale === markerScale
                         const isDefault = markerScale === 1.0
-                        const pct = markerPos(markerScale)
-                        const left = `calc(${pct}% * 0.875 + 6.25%)`
+                        const left = `calc(${idx / 5 * 100}% * 0.875 + 6.25%)`
                         return (
-                          <span
+                          <button
                             key={markerScale}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => selectedNodeId && updateNodeSizeScale(selectedNodeId, markerScale)}
+                            title={`${Math.round(markerScale * 100)}%`}
                             style={{
                               position: 'absolute',
                               left,
-                              transform: 'translateX(-50%)',
-                              fontSize: 8,
-                              color: isActive ? '#7c3aed' : isDefault ? '#a78bfa' : '#cbd5e1',
-                              fontWeight: isActive || isDefault ? 700 : 400,
-                              whiteSpace: 'nowrap',
-                              pointerEvents: 'none',
-                              transition: 'color 0.15s ease',
+                              top: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              width: isDefault ? 10 : 7,
+                              height: isDefault ? 10 : 7,
+                              borderRadius: '50%',
+                              background: isActive ? '#7c3aed' : isDefault ? '#c4b5fd' : '#e2e8f0',
+                              border: isActive ? '2px solid white' : isDefault ? '1.5px solid #a78bfa' : '1.5px solid #cbd5e1',
+                              boxShadow: isActive ? '0 0 0 2px #7c3aed' : 'none',
+                              cursor: 'pointer',
+                              padding: 0,
+                              pointerEvents: 'auto',
+                              transition: 'all 0.15s ease',
                             }}
-                          >
-                            {Math.round(markerScale * 100)}
-                          </span>
+                          />
                         )
                       })}
                     </div>
+                  </div>
+                  {/* ラベル */}
+                  <div style={{ position: 'relative', height: 16, marginTop: 2 }}>
+                    {SIZE_MARKERS.map((markerScale, idx) => {
+                      const isActive = selectedNodeSizeScale === markerScale
+                      const isDefault = markerScale === 1.0
+                      const left = `calc(${idx / 5 * 100}% * 0.875 + 6.25%)`
+                      return (
+                        <span
+                          key={markerScale}
+                          style={{
+                            position: 'absolute',
+                            left,
+                            transform: 'translateX(-50%)',
+                            fontSize: 8,
+                            color: isActive ? '#7c3aed' : isDefault ? '#a78bfa' : '#cbd5e1',
+                            fontWeight: isActive || isDefault ? 700 : 400,
+                            whiteSpace: 'nowrap',
+                            pointerEvents: 'none',
+                            transition: 'color 0.15s ease',
+                          }}
+                        >
+                          {Math.round(markerScale * 100)}
+                        </span>
+                      )
+                    })}
                   </div>
                 </div>
 
