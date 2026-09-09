@@ -73,7 +73,7 @@ export function useSheetsSync(user: User | null) {
   }, [nodes, edges])
 
   // シートの追加・削除・リネームを検知してDBに反映
-  const sheetKey = sheets.map((s) => s.id + s.name).join(',')
+  const sheetKey = sheets.map((s) => s.id + s.name + (s.mapType ?? '')).join(',')
   useEffect(() => {
     if (!initializedRef.current) return
 

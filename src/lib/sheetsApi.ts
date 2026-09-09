@@ -7,7 +7,7 @@ interface DbSheetMeta {
 }
 
 interface DbSheet extends DbSheetMeta {
-  data: { nodes: Sheet['nodes']; edges: Sheet['edges'] }
+  data: { mapType?: Sheet['mapType']; nodes: Sheet['nodes']; edges: Sheet['edges'] }
 }
 
 // シートのメタデータのみ取得（軽量）
@@ -48,6 +48,7 @@ export async function fetchSheets(): Promise<Sheet[]> {
   return (data as DbSheet[]).map((s) => ({
     id: s.id,
     name: s.name,
+    mapType: s.data?.mapType,
     nodes: s.data?.nodes ?? [],
     edges: s.data?.edges ?? [],
   }))
@@ -59,7 +60,7 @@ export async function upsertSheet(sheet: Sheet): Promise<void> {
     {
       id: sheet.id,
       name: sheet.name,
-      data: { nodes: sheet.nodes, edges: sheet.edges },
+      data: { mapType: sheet.mapType, nodes: sheet.nodes, edges: sheet.edges },
     },
     { onConflict: 'id' }
   )
