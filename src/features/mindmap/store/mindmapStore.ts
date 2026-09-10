@@ -271,6 +271,62 @@ export const useMindmapStore = create<MindmapStore>()(
         })
       },
 
+      addChildNodeInDirection: (parentId, direction) => {
+        const { nodes, edges } = get()
+        const parent = nodes.find((n) => n.id === parentId)
+        if (!parent) return
+
+        const sourceHandle = direction
+        const targetHandle = direction === 'right' ? 'left' : direction === 'left' ? 'right' : direction === 'bottom' ? 'top' : 'bottom'
+        const isHorizontal = direction === 'right' || direction === 'left'
+        const sign = direction === 'right' || direction === 'bottom' ? 1 : -1
+
+        const siblings = edges
+          .filter((e) => e.source === parentId && e.sourceHandle === direction)
+          .map((e) => nodes.find((n) => n.id === e.target))
+          .filter((n): n is Node<MindmapNodeData> => !!n)
+
+        let basePos: { x: number; y: number }
+        if (isHorizontal) {
+          const sorted = siblings.sort((a, b) => a.position.y - b.position.y)
+          const baseY = sorted.length === 0 ? parent.position.y : sorted[sorted.length - 1].position.y + NODE_H + PADDING
+          basePos = { x: parent.position.x + sign * (NODE_W + PADDING), y: baseY }
+        } else {
+          const sorted = siblings.sort((a, b) => a.position.x - b.position.x)
+          const baseX = sorted.length === 0 ? parent.position.x : sorted[sorted.length - 1].position.x + NODE_W + PADDING
+          basePos = { x: baseX, y: parent.position.y + sign * (NODE_H + PADDING) }
+        }
+
+        const position = avoidCollision(basePos, nodes, isHorizontal ? 'y' : 'x')
+        const colorIndex = nodes.length % COLORS.length
+        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
+        const newId = generateId()
+
+        const newNode: Node<MindmapNodeData> = {
+          id: newId,
+          type: 'mindmapNode',
+          position,
+          data: { label: 'アイデア', color: nodeColor, depth: (parent.data.depth ?? 0) + 1 },
+        }
+
+        const newEdge: Edge = {
+          id: `edge-${parentId}-${newId}`,
+          source: parentId,
+          target: newId,
+          sourceHandle,
+          targetHandle,
+          type: 'interactive',
+          style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 },
+        }
+
+        set({
+          nodes: [...nodes, newNode],
+          edges: [...edges, newEdge],
+          selectedNodeId: newId,
+          editingNodeId: newId,
+        })
+      },
+
       addSiblingNode: (nodeId) => {
         const { nodes, edges } = get()
         // ルートノードは兄弟を持てない
