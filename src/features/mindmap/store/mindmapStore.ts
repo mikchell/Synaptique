@@ -12,6 +12,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 export type NodeColor = 'purple' | 'blue' | 'cyan' | 'green' | 'pink' | 'orange'
+export type MapType = 'linear' | 'free'
 
 export interface MindmapNodeData extends Record<string, unknown> {
   label: string
@@ -26,6 +27,7 @@ export interface MindmapNodeData extends Record<string, unknown> {
 export interface Sheet {
   id: string
   name: string
+  mapType?: MapType
   nodes: Node<MindmapNodeData>[]
   edges: Edge[]
 }
@@ -40,6 +42,8 @@ interface MindmapStore {
   defaultNodeColor: NodeColor | null
   isSaving: boolean
   layoutSnapshot: Node<MindmapNodeData>[] | null
+  templateModalOpen: boolean
+  templateModalMode: 'init' | 'new'
 
   onNodesChange: (changes: NodeChange[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
@@ -47,6 +51,7 @@ interface MindmapStore {
 
   addChildNode: (parentId: string) => void
   addChildNodeBelow: (parentId: string) => void
+  addChildNodeInDirection: (parentId: string, direction: 'left' | 'right' | 'top' | 'bottom') => void
   addSiblingNode: (nodeId: string) => void
   insertNodeBetween: (sourceId: string, targetId: string, edgeId: string, sourceHandle: string, targetHandle: string) => void
   tidyLayout: () => void
@@ -64,7 +69,10 @@ interface MindmapStore {
   setIsSaving: (v: boolean) => void
   resetMindmap: () => void
 
-  addSheet: () => void
+  openTemplateModal: (mode: 'init' | 'new') => void
+  closeTemplateModal: () => void
+  setCurrentSheetMapType: (mapType: MapType) => void
+  addSheet: (mapType: MapType) => void
   deleteSheet: (id: string) => void
   renameSheet: (id: string, name: string) => void
   switchSheet: (id: string) => void
@@ -135,6 +143,8 @@ export const useMindmapStore = create<MindmapStore>()(
       defaultNodeColor: null,
       isSaving: false,
       layoutSnapshot: null,
+      templateModalOpen: false,
+      templateModalMode: 'init' as const,
 
       onNodesChange: (changes) => {
         set({ nodes: applyNodeChanges(changes, get().nodes) as Node<MindmapNodeData>[] })
@@ -609,15 +619,29 @@ export const useMindmapStore = create<MindmapStore>()(
         set({ nodes: fresh, edges: [], selectedNodeId: null })
       },
 
-      addSheet: () => {
+      openTemplateModal: (mode) => set({ templateModalOpen: true, templateModalMode: mode }),
+      closeTemplateModal: () => set({ templateModalOpen: false }),
+
+      setCurrentSheetMapType: (mapType) => {
+        const { sheets, currentSheetId, nodes } = get()
+        set({
+          sheets: sheets.map((s) => s.id === currentSheetId ? { ...s, mapType } : s),
+          templateModalOpen: false,
+          selectedNodeId: nodes[0]?.id ?? null,
+        })
+      },
+
+      addSheet: (mapType) => {
         const { sheets, currentSheetId, nodes, edges } = get()
         const updatedSheets = sheets.map((s) =>
           s.id === currentSheetId ? { ...s, nodes, edges } : s
         )
+        const initialNodes = makeInitialNodes()
         const newSheet: Sheet = {
           id: generateSheetId(),
           name: `シート${updatedSheets.length + 1}`,
-          nodes: makeInitialNodes(),
+          mapType,
+          nodes: initialNodes,
           edges: [],
         }
         set({
@@ -625,7 +649,8 @@ export const useMindmapStore = create<MindmapStore>()(
           currentSheetId: newSheet.id,
           nodes: newSheet.nodes,
           edges: newSheet.edges,
-          selectedNodeId: null,
+          selectedNodeId: initialNodes[0]?.id ?? null,
+          templateModalOpen: false,
         })
       },
 
@@ -668,18 +693,26 @@ export const useMindmapStore = create<MindmapStore>()(
           nodes: target.nodes,
           edges: target.edges,
           selectedNodeId: null,
+          ...(!target.mapType ? { templateModalOpen: true, templateModalMode: 'init' as const } : {}),
         })
       },
 
       loadSheets: (sheets) => {
         if (sheets.length === 0) return
         const first = sheets[0]
+        // すでにユーザーがテンプレートを選択済み（モーダルが閉じられている）場合は再表示しない
+        const alreadyClosed = !get().templateModalOpen
         set({
           sheets,
           currentSheetId: first.id,
           nodes: first.nodes,
           edges: first.edges,
           selectedNodeId: null,
+          ...(!first.mapType && !alreadyClosed
+            ? { templateModalOpen: true, templateModalMode: 'init' as const }
+            : first.mapType
+              ? { templateModalOpen: false }
+              : {}),
         })
       },
     }),
@@ -700,6 +733,10 @@ export const useMindmapStore = create<MindmapStore>()(
         if (current) {
           state.nodes = current.nodes
           state.edges = current.edges
+          if (!current.mapType) {
+            state.templateModalOpen = true
+            state.templateModalMode = 'init'
+          }
         }
       },
     }
