@@ -20,7 +20,7 @@ import { NodePanel } from './NodePanel'
 import { Toolbar } from './Toolbar'
 import { HelpHint } from './HelpHint'
 import { SheetTabs } from './SheetTabs'
-import { Tutorial } from './Tutorial'
+import { TemplateSelectModal } from './TemplateSelectModal'
 
 const nodeTypes = { mindmapNode: MindmapNode }
 const edgeTypes = { interactive: InteractiveEdge, default: InteractiveEdge }
@@ -107,7 +107,7 @@ function MindmapFlow() {
       <NodePanel />
       <HelpHint />
       <SheetTabs />
-      <Tutorial />
+      <TemplateSelectModal />
     </div>
   )
 }
