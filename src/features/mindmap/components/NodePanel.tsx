@@ -22,9 +22,13 @@ export function NodePanel() {
   const selectedNodeColor = selectedNode?.data.color ?? null
   const selectedNodeMemo = selectedNode?.data.memo ?? ''
   const selectedNodeBorderWidth = selectedNode?.data.borderWidth ?? null
+  const selectedNodeBorderRadius = selectedNode?.data.borderRadius ?? null
+  const selectedNodeIsCircle = selectedNode?.data.isCircle ?? false
   const updateNodeColor = useMindmapStore((s) => s.updateNodeColor)
   const updateNodeMemo = useMindmapStore((s) => s.updateNodeMemo)
   const updateNodeBorderWidth = useMindmapStore((s) => s.updateNodeBorderWidth)
+  const updateNodeBorderRadius = useMindmapStore((s) => s.updateNodeBorderRadius)
+  const updateNodeIsCircle = useMindmapStore((s) => s.updateNodeIsCircle)
   const defaultNodeColor = useMindmapStore((s) => s.defaultNodeColor)
   const setDefaultNodeColor = useMindmapStore((s) => s.setDefaultNodeColor)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -175,6 +179,61 @@ export function NodePanel() {
                         }} />
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* 角丸 */}
+                <div style={{ marginTop: 16, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
+                  <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px 0' }}>
+                    角丸
+                  </p>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {([0, 8, 16, 24, 9999] as const).map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => {
+                          if (!selectedNodeId) return
+                          if (selectedNodeIsCircle) updateNodeIsCircle(selectedNodeId, false)
+                          updateNodeBorderRadius(selectedNodeId, r)
+                        }}
+                        title={r === 9999 ? 'ピル' : `${r}px`}
+                        style={{
+                          flex: 1, height: 30, borderRadius: 8,
+                          background: !selectedNodeIsCircle && selectedNodeBorderRadius === r ? 'rgba(124,58,237,0.12)' : 'rgba(0,0,0,0.04)',
+                          border: !selectedNodeIsCircle && selectedNodeBorderRadius === r ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid transparent',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{
+                          width: r === 9999 ? 20 : 16,
+                          height: r === 9999 ? 10 : 12,
+                          background: !selectedNodeIsCircle && selectedNodeBorderRadius === r ? '#7c3aed' : '#94a3b8',
+                          borderRadius: r === 9999 ? 999 : Math.round(r * 0.35),
+                          transition: 'all 0.15s ease',
+                        }} />
+                      </button>
+                    ))}
+                    {/* まんまるボタン */}
+                    <button
+                      onClick={() => selectedNodeId && updateNodeIsCircle(selectedNodeId, !selectedNodeIsCircle)}
+                      title="まんまる"
+                      style={{
+                        flex: 1, height: 30, borderRadius: 8,
+                        background: selectedNodeIsCircle ? 'rgba(124,58,237,0.12)' : 'rgba(0,0,0,0.04)',
+                        border: selectedNodeIsCircle ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid transparent',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div style={{
+                        width: 14,
+                        height: 14,
+                        background: selectedNodeIsCircle ? '#7c3aed' : '#94a3b8',
+                        borderRadius: '50%',
+                        transition: 'all 0.15s ease',
+                      }} />
+                    </button>
                   </div>
                 </div>
 

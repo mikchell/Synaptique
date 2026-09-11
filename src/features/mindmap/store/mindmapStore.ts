@@ -13,6 +13,7 @@ import { persist } from 'zustand/middleware'
 
 export type NodeColor = 'purple' | 'blue' | 'cyan' | 'green' | 'pink' | 'orange'
 export type MapType = 'linear' | 'free'
+export type FreeDirection = 'right' | 'left' | 'bottom' | 'top' | 'top-right' | 'bottom-right' | 'bottom-left' | 'top-left'
 
 export interface MindmapNodeData extends Record<string, unknown> {
   label: string
@@ -22,6 +23,8 @@ export interface MindmapNodeData extends Record<string, unknown> {
   memo?: string
   borderWidth?: number
   sizeScale?: number
+  borderRadius?: number
+  isCircle?: boolean
 }
 
 export interface Sheet {
@@ -51,7 +54,7 @@ interface MindmapStore {
 
   addChildNode: (parentId: string) => void
   addChildNodeBelow: (parentId: string) => void
-  addChildNodeInDirection: (parentId: string, direction: 'left' | 'right' | 'top' | 'bottom') => void
+  addChildNodeInDirection: (parentId: string, direction: FreeDirection) => void
   addSiblingNode: (nodeId: string) => void
   insertNodeBetween: (sourceId: string, targetId: string, edgeId: string, sourceHandle: string, targetHandle: string) => void
   tidyLayout: () => void
@@ -61,6 +64,8 @@ interface MindmapStore {
   updateNodeColor: (id: string, color: NodeColor) => void
   updateNodeMemo: (id: string, memo: string) => void
   updateNodeBorderWidth: (id: string, borderWidth: number) => void
+  updateNodeBorderRadius: (id: string, borderRadius: number) => void
+  updateNodeIsCircle: (id: string, isCircle: boolean) => void
   updateNodeSizeScale: (id: string, sizeScale: number) => void
   deleteNode: (id: string) => void
   setSelectedNodeId: (id: string | null) => void
@@ -111,16 +116,34 @@ function overlaps(
 function avoidCollision(
   proposed: { x: number; y: number },
   nodes: Node<MindmapNodeData>[],
-  shift: 'y' | 'x'
+  shift: 'y' | 'x',
+  shiftSign: 1 | -1 = 1
 ): { x: number; y: number } {
   let pos = { ...proposed }
   for (let i = 0; i < 50; i++) {
     const hit = nodes.find((n) => overlaps(pos, n))
     if (!hit) return pos
-    if (shift === 'y') pos = { ...pos, y: hit.position.y + NODE_H + PADDING }
-    else pos = { ...pos, x: hit.position.x + NODE_W + PADDING }
+    if (shift === 'y') {
+      pos = { ...pos, y: shiftSign > 0 ? hit.position.y + NODE_H + PADDING : hit.position.y - NODE_H - PADDING }
+    } else {
+      pos = { ...pos, x: shiftSign > 0 ? hit.position.x + NODE_W + PADDING : hit.position.x - NODE_W - PADDING }
+    }
   }
   return pos
+}
+
+// フリーモードは全方向とも中心ハンドルを使用（エッジがノード中心から動的に接続点を計算）
+const DIRECTION_CONFIG: Record<FreeDirection, {
+  dx: number; dy: number; shift: 'x' | 'y'; shiftSign: 1 | -1
+}> = {
+  'right':        { dx: +1, dy:  0, shift: 'y', shiftSign:  1 },
+  'left':         { dx: -1, dy:  0, shift: 'y', shiftSign:  1 },
+  'bottom':       { dx:  0, dy: +1, shift: 'x', shiftSign:  1 },
+  'top':          { dx:  0, dy: -1, shift: 'x', shiftSign:  1 },
+  'top-right':    { dx: +1, dy: -1, shift: 'y', shiftSign: -1 },
+  'bottom-right': { dx: +1, dy: +1, shift: 'y', shiftSign:  1 },
+  'bottom-left':  { dx: -1, dy: +1, shift: 'y', shiftSign:  1 },
+  'top-left':     { dx: -1, dy: -1, shift: 'y', shiftSign: -1 },
 }
 
 
@@ -276,28 +299,35 @@ export const useMindmapStore = create<MindmapStore>()(
         const parent = nodes.find((n) => n.id === parentId)
         if (!parent) return
 
-        const sourceHandle = direction
-        const targetHandle = direction === 'right' ? 'left' : direction === 'left' ? 'right' : direction === 'bottom' ? 'top' : 'bottom'
-        const isHorizontal = direction === 'right' || direction === 'left'
-        const sign = direction === 'right' || direction === 'bottom' ? 1 : -1
+        const { dx, dy, shift, shiftSign } = DIRECTION_CONFIG[direction]
 
+        // 方向はエッジの data.direction で管理（中心ハンドル共通のため）
         const siblings = edges
-          .filter((e) => e.source === parentId && e.sourceHandle === direction)
+          .filter((e) => e.source === parentId && (e.data as { direction?: FreeDirection })?.direction === direction)
           .map((e) => nodes.find((n) => n.id === e.target))
           .filter((n): n is Node<MindmapNodeData> => !!n)
 
         let basePos: { x: number; y: number }
-        if (isHorizontal) {
+        if (shift === 'y') {
           const sorted = siblings.sort((a, b) => a.position.y - b.position.y)
-          const baseY = sorted.length === 0 ? parent.position.y : sorted[sorted.length - 1].position.y + NODE_H + PADDING
-          basePos = { x: parent.position.x + sign * (NODE_W + PADDING), y: baseY }
+          let baseY: number
+          if (sorted.length === 0) {
+            baseY = parent.position.y + dy * (NODE_H + PADDING)
+          } else if (shiftSign < 0) {
+            baseY = sorted[0].position.y - (NODE_H + PADDING)
+          } else {
+            baseY = sorted[sorted.length - 1].position.y + (NODE_H + PADDING)
+          }
+          basePos = { x: parent.position.x + dx * (NODE_W + PADDING), y: baseY }
         } else {
           const sorted = siblings.sort((a, b) => a.position.x - b.position.x)
-          const baseX = sorted.length === 0 ? parent.position.x : sorted[sorted.length - 1].position.x + NODE_W + PADDING
-          basePos = { x: baseX, y: parent.position.y + sign * (NODE_H + PADDING) }
+          const baseX = sorted.length === 0
+            ? parent.position.x + dx * (NODE_W + PADDING)
+            : sorted[sorted.length - 1].position.x + (NODE_W + PADDING)
+          basePos = { x: baseX, y: parent.position.y + dy * (NODE_H + PADDING) }
         }
 
-        const position = avoidCollision(basePos, nodes, isHorizontal ? 'y' : 'x')
+        const position = avoidCollision(basePos, nodes, shift, shiftSign)
         const colorIndex = nodes.length % COLORS.length
         const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
         const newId = generateId()
@@ -313,9 +343,10 @@ export const useMindmapStore = create<MindmapStore>()(
           id: `edge-${parentId}-${newId}`,
           source: parentId,
           target: newId,
-          sourceHandle,
-          targetHandle,
+          sourceHandle: 'free-src',
+          targetHandle: 'free-tgt',
           type: 'interactive',
+          data: { direction },
           style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 },
         }
 
@@ -411,14 +442,15 @@ export const useMindmapStore = create<MindmapStore>()(
             : n
         )
 
+        const isFree = get().sheets.find((s) => s.id === get().currentSheetId)?.mapType === 'free'
         const edgeStyle = { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 }
         const newEdges: Edge[] = [
           {
             id: `edge-${sourceId}-${newId}`,
             source: sourceId,
             target: newId,
-            sourceHandle,
-            targetHandle: 'left',
+            sourceHandle: isFree ? 'free-src' : sourceHandle,
+            targetHandle: isFree ? 'free-tgt' : 'left',
             type: 'interactive',
             style: edgeStyle,
           },
@@ -426,8 +458,8 @@ export const useMindmapStore = create<MindmapStore>()(
             id: `edge-${newId}-${targetId}`,
             source: newId,
             target: targetId,
-            sourceHandle: 'right',
-            targetHandle,
+            sourceHandle: isFree ? 'free-src' : 'right',
+            targetHandle: isFree ? 'free-tgt' : targetHandle,
             type: 'interactive',
             style: edgeStyle,
           },
@@ -609,6 +641,39 @@ export const useMindmapStore = create<MindmapStore>()(
         })
       },
 
+      updateNodeBorderRadius: (id, borderRadius) => {
+        set({
+          nodes: get().nodes.map((n) =>
+            n.id === id ? { ...n, data: { ...n.data, borderRadius } } : n
+          ),
+        })
+      },
+
+      updateNodeIsCircle: (id, isCircle) => {
+        set({
+          nodes: get().nodes.map((n) => {
+            if (n.id !== id) return n
+            if (isCircle) {
+              // ノードを正方形にする：現在の幅を基準に高さを揃える
+              const size = n.style?.width ?? n.measured?.width ?? 120
+              return {
+                ...n,
+                style: { ...n.style, width: size, height: size },
+                data: { ...n.data, isCircle: true, borderRadius: 9999 },
+              }
+            } else {
+              const style = { ...(n.style ?? {}) }
+              delete style.height
+              return {
+                ...n,
+                style,
+                data: { ...n.data, isCircle: false },
+              }
+            }
+          }),
+        })
+      },
+
       updateNodeSizeScale: (id, sizeScale) => {
         set({
           nodes: get().nodes.map((n) =>
@@ -618,9 +683,14 @@ export const useMindmapStore = create<MindmapStore>()(
       },
 
       deleteNode: (id) => {
-        if (id === 'root') return
-        const { nodes, edges } = get()
+        // ルートノード削除 = 全ノードが消える → シートを削除（最後の1枚は削除不可）
+        if (id === 'root') {
+          if (get().sheets.length <= 1) return
+          get().deleteSheet(get().currentSheetId)
+          return
+        }
 
+        const { nodes, edges } = get()
         const parentEdge = edges.find((e) => e.target === id)
         const childEdges = edges.filter((e) => e.source === id)
 
