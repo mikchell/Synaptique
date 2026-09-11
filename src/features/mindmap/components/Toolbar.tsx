@@ -13,6 +13,7 @@ export function Toolbar() {
   const tidySelectedLayout = useMindmapStore((s) => s.tidySelectedLayout)
   const toggleLayout = useMindmapStore((s) => s.toggleLayout)
   const hasSnapshot = useMindmapStore((s) => s.layoutSnapshot !== null)
+  const isFree = useMindmapStore((s) => s.sheets.find((sh) => sh.id === s.currentSheetId)?.mapType === 'free')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [tidyConfirmOpen, setTidyConfirmOpen] = useState(false)
   const hasSelection = selectedCount >= 2
@@ -138,30 +139,32 @@ export function Toolbar() {
         >
           <Maximize2 size={16} />
         </button>
-        <button
-          style={buttonStyle}
-          onClick={() => setTidyConfirmOpen(true)}
-          onMouseEnter={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.background =
-              'rgba(124, 58, 237, 0.2)'
-            ;(e.currentTarget as HTMLButtonElement).style.color = '#a78bfa'
-            ;(e.currentTarget as HTMLButtonElement).style.borderColor =
-              'rgba(124, 58, 237, 0.4)'
-          }}
-          onMouseLeave={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.background =
-              'rgba(255,255,255,0.9)'
-            ;(e.currentTarget as HTMLButtonElement).style.color = '#64748b'
-            ;(e.currentTarget as HTMLButtonElement).style.borderColor =
-              'rgba(0,0,0,0.1)'
-          }}
-          title={hasSelection ? `選択範囲を整頓 (${selectedCount}個)` : '整頓'}
-        >
-          <LayoutDashboard size={16} />
-        </button>
+        {!isFree && (
+          <button
+            style={buttonStyle}
+            onClick={() => setTidyConfirmOpen(true)}
+            onMouseEnter={(e) => {
+              ;(e.currentTarget as HTMLButtonElement).style.background =
+                'rgba(124, 58, 237, 0.2)'
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#a78bfa'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor =
+                'rgba(124, 58, 237, 0.4)'
+            }}
+            onMouseLeave={(e) => {
+              ;(e.currentTarget as HTMLButtonElement).style.background =
+                'rgba(255,255,255,0.9)'
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#64748b'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor =
+                'rgba(0,0,0,0.1)'
+            }}
+            title={hasSelection ? `選択範囲を整頓 (${selectedCount}個)` : '整頓'}
+          >
+            <LayoutDashboard size={16} />
+          </button>
+        )}
 
         {/* 整頓↔元の配置トグル */}
-        {hasSnapshot && (
+        {!isFree && hasSnapshot && (
           <button
             style={buttonStyle}
             onClick={() => { toggleLayout(); setTimeout(() => fitView({ padding: 0.3, duration: 500 }), 50) }}
