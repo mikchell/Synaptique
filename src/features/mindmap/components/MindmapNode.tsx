@@ -95,10 +95,12 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
   const colors = COLOR_MAP[data.color]
   const showActions = (selected || hovered) && !editing
   const sz = SIZE_MAP[data.isRoot ? 0 : 1]
+  // フリーモードは縦パディングを横と揃えてアスペクト比を改善（50%楕円が潰れすぎない）
+  const paddingV = isFree ? sz.paddingH : sz.paddingV
   const defaultRadius = isFree ? '50%' : sz.borderRadius
   const nodeBorderRadius = data.isCircle ? 9999 : (data.borderRadius !== undefined ? data.borderRadius : defaultRadius)
   // width・height両方使って面積ベースでスケール（より追従感が出る）
-  const defaultH = sz.paddingV * 2 + sz.fontSize * 2.2
+  const defaultH = paddingV * 2 + sz.fontSize * 2.2
   const scaleW = width ? width / sz.minWidth : 1
   const scaleH = height ? height / defaultH : 1
   const fontSize = Math.round(sz.fontSize * Math.sqrt(scaleW * scaleH))
@@ -192,7 +194,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
         width: '100%',
         height: '100%',
         minWidth: sz.minWidth,
-        minHeight: data.isCircle ? sz.minWidth : sz.paddingV * 2 + sz.fontSize * 2,
+        minHeight: data.isCircle ? sz.minWidth : paddingV * 2 + sz.fontSize * 2,
         boxSizing: 'border-box',
         borderRadius: nodeBorderRadius,
         background: colors.bg,
@@ -200,7 +202,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
         boxShadow: selected
           ? `0 0 0 2px #7c3aed, 0 4px 16px ${colors.glow}`
           : `0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px ${colors.border}`,
-        padding: `${sz.paddingV}px ${sz.paddingH}px`,
+        padding: `${paddingV}px ${sz.paddingH}px`,
         cursor: 'grab',
         userSelect: 'none',
         position: 'relative',
@@ -225,7 +227,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
           position={pos}
           keepAspectRatio={data.isCircle || undefined}
           minWidth={sz.minWidth}
-          minHeight={data.isCircle ? sz.minWidth : sz.paddingV * 2 + sz.fontSize * 2}
+          minHeight={data.isCircle ? sz.minWidth : paddingV * 2 + sz.fontSize * 2}
           style={{
             width: 10, height: 10,
             borderRadius: '50%',
