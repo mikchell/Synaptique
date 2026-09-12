@@ -2,7 +2,7 @@ import { EdgeLabelRenderer, type EdgeProps, getBezierPath, getStraightPath, useI
 import { motion } from 'framer-motion'
 import { Plus } from 'lucide-react'
 import { memo, useRef, useState } from 'react'
-import { useMindmapStore } from '../store/mindmapStore'
+import { useMindmapStore, type MindmapNodeData } from '../store/mindmapStore'
 
 function ellipseBorderPoint(
   cx: number, cy: number,
@@ -37,7 +37,9 @@ function InteractiveEdgeComponent({
     s.sheets.find((sh) => sh.id === s.currentSheetId)?.mapType === 'free'
   )
   // エッジ描画アニメーションの遅延：接続元ノードのdepthに基づく
-  const sourceDepth = useMindmapStore((s) => s.nodes.find((n) => n.id === source)?.data.depth ?? 0)
+  const sourceDepth = useMindmapStore(
+    (s) => (s.nodes.find((n) => n.id === source)?.data as MindmapNodeData | undefined)?.depth ?? 0
+  )
   const edgeDelay = sourceDepth * 0.15 + 0.18
 
   const sourceNode = useInternalNode(source)

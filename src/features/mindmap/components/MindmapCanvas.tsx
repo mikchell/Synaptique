@@ -8,17 +8,21 @@ import {
   useReactFlow,
 } from '@xyflow/react'
 import { useCallback, useEffect, useRef } from 'react'
+import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import { useMindmapStore } from '../store/mindmapStore'
 import { useIsMobile } from '../../../hooks/useIsMobile'
+import { uploadNodeImage } from '../../../lib/imageApi'
 import { Header } from './Header'
 import { MindmapNode } from './MindmapNode'
+import { ImageNode } from './ImageNode'
 import { InteractiveEdge } from './InteractiveEdge'
 import { NodePanel } from './NodePanel'
 import { Toolbar } from './Toolbar'
 import { HelpHint } from './HelpHint'
 
-const nodeTypes = { mindmapNode: MindmapNode }
+const nodeTypes = { mindmapNode: MindmapNode, imageNode: ImageNode }
+const PASTE_IMAGE_MAX_DIM = 320
 const edgeTypes = { interactive: InteractiveEdge, default: InteractiveEdge }
 
 const MINIMAP_COLOR_MAP: Record<string, string> = {
@@ -33,7 +37,7 @@ const getMinimapNodeColor = (node: { data: unknown }) =>
   MINIMAP_COLOR_MAP[(node.data as { color: string }).color] ?? '#7c3aed'
 
 function MindmapFlow() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setSelectedNodeId, editingNodeId } =
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setSelectedNodeId, editingNodeId, addImageNode } =
     useMindmapStore(
       useShallow((s) => ({
         nodes: s.nodes,
@@ -43,12 +47,45 @@ function MindmapFlow() {
         onConnect: s.onConnect,
         setSelectedNodeId: s.setSelectedNodeId,
         editingNodeId: s.editingNodeId,
+        addImageNode: s.addImageNode,
       }))
     )
-  const { setCenter, getZoom, setViewport, getViewport } = useReactFlow()
+  const { setCenter, getZoom, setViewport, getViewport, screenToFlowPosition } = useReactFlow()
   const isMobile = useIsMobile()
   const containerRef = useRef<HTMLDivElement>(null)
   const twoFingerRef = useRef<{ midX: number; midY: number; vx: number; vy: number } | null>(null)
+
+  // ボードにクリップボードの画像を貼り付け（横展開・フリー展開どちらでも可）
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const file = Array.from(e.clipboardData?.items ?? [])
+        .find((item) => item.type.startsWith('image/'))
+        ?.getAsFile()
+      if (!file) return
+      e.preventDefault()
+
+      const objectUrl = URL.createObjectURL(file)
+      const img = new Image()
+      img.onload = () => {
+        const scale = Math.min(1, PASTE_IMAGE_MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight))
+        const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+        uploadNodeImage(file)
+          .then((path) => {
+            addImageNode(path, Math.round(img.naturalWidth * scale), Math.round(img.naturalHeight * scale), position)
+          })
+          .catch((err) => toast.error(err instanceof Error ? err.message : '画像の貼り付けに失敗しました'))
+          .finally(() => URL.revokeObjectURL(objectUrl))
+      }
+      img.onerror = () => {
+        toast.error('画像の貼り付けに失敗しました')
+        URL.revokeObjectURL(objectUrl)
+      }
+      img.src = objectUrl
+    }
+
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [addImageNode, screenToFlowPosition])
 
   const handlePaneClick = useCallback(() => setSelectedNodeId(null), [setSelectedNodeId])
 

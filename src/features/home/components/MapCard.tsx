@@ -3,6 +3,7 @@ import { Pencil, RotateCcw, Star, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useMindmapStore, type Sheet } from '../../mindmap/store/mindmapStore'
 import { ConfirmDialog } from '../../mindmap/components/ConfirmDialog'
+import { deleteNodeImages, getImagePaths } from '../../../lib/imageApi'
 import { MapThumbnail } from './MapThumbnail'
 import { formatRelativeTime } from '../utils/formatRelativeTime'
 
@@ -233,7 +234,12 @@ export function MapCard({ sheet, viewMode, variant }: Props) {
         title="完全に削除しますか？"
         description={`「${sheet.name}」を完全に削除します。この操作は取り消せません。`}
         confirmLabel="完全に削除"
-        onConfirm={() => { setConfirmOpen(false); permanentlyDeleteSheet(sheet.id) }}
+        onConfirm={() => {
+          setConfirmOpen(false)
+          permanentlyDeleteSheet(sheet.id)
+          const imagePaths = getImagePaths(sheet.nodes)
+          if (imagePaths.length > 0) deleteNodeImages(imagePaths).catch(() => {})
+        }}
         onCancel={() => setConfirmOpen(false)}
       />
     </>

@@ -65,10 +65,9 @@ const DIRECTION_ANGLE: Record<FreeDirection, number> = {
 }
 
 function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<Node<MindmapNodeData>>) {
-  const { addChildNode, addChildNodeBelow, addChildNodeInDirection, updateNodeLabel, deleteNode, setSelectedNodeId, editingNodeId, setEditingNodeId, currentMapType } = useMindmapStore(
+  const { addChildNode, addChildNodeInDirection, updateNodeLabel, deleteNode, setSelectedNodeId, editingNodeId, setEditingNodeId, currentMapType } = useMindmapStore(
     useShallow((s) => ({
       addChildNode: s.addChildNode,
-      addChildNodeBelow: s.addChildNodeBelow,
       addChildNodeInDirection: s.addChildNodeInDirection,
       updateNodeLabel: s.updateNodeLabel,
       deleteNode: s.deleteNode,
@@ -424,7 +423,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
         )}
       </AnimatePresence>
 
-      {/* 右展開モード：右・下の + ボタン */}
+      {/* ロジックツリーモード：右の + ボタン */}
       <AnimatePresence>
         {!isFree && showActions && (
           <motion.button
@@ -436,22 +435,6 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
             onClick={(e) => { e.stopPropagation(); addChildNode(id) }}
             style={{ ...ADD_BTN, right: -11, top: '50%', marginTop: -11 }}
             title="右に追加"
-          >
-            <Plus size={13} />
-          </motion.button>
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {!isFree && showActions && (
-          <motion.button
-            key="add-bottom"
-            initial={{ opacity: 0, scale: 0.6 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.6 }}
-            transition={{ duration: 0.12 }}
-            onClick={(e) => { e.stopPropagation(); addChildNodeBelow(id) }}
-            style={{ ...ADD_BTN, bottom: -11, left: '50%', marginLeft: -11 }}
-            title="下に追加"
           >
             <Plus size={13} />
           </motion.button>
