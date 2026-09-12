@@ -182,6 +182,20 @@ const initialSheet: Sheet = {
   folderId: null,
 }
 
+// localStorageに残った旧バージョンのシート（is_starred等の新フィールド追加前）を補完する。
+// 未補完のままだと updatedAt などが undefined になり、ホーム画面表示時にクラッシュする。
+function normalizeSheet(s: Sheet): Sheet {
+  const now = new Date().toISOString()
+  return {
+    ...s,
+    isStarred: s.isStarred ?? false,
+    deletedAt: s.deletedAt ?? null,
+    lastOpenedAt: s.lastOpenedAt ?? now,
+    updatedAt: s.updatedAt ?? now,
+    folderId: s.folderId ?? null,
+  }
+}
+
 export const useMindmapStore = create<MindmapStore>()(
   persist(
     (set, get) => ({
@@ -200,7 +214,16 @@ export const useMindmapStore = create<MindmapStore>()(
       templateModalMode: 'init' as const,
 
       onNodesChange: (changes) => {
-        set({ nodes: applyNodeChanges(changes, get().nodes) as Node<MindmapNodeData>[] })
+        // キーボードでルートノードを削除しようとした場合はシートをゴミ箱へ
+        const currentNodes = get().nodes
+        const rootRemoved = changes.some(
+          (c) => c.type === 'remove' && currentNodes.find((n) => n.id === c.id)?.data.isRoot
+        )
+        if (rootRemoved) {
+          get().moveSheetToTrash(get().currentSheetId)
+          return
+        }
+        set({ nodes: applyNodeChanges(changes, currentNodes) as Node<MindmapNodeData>[] })
       },
 
       onEdgesChange: (changes) => {
@@ -721,13 +744,13 @@ export const useMindmapStore = create<MindmapStore>()(
       },
 
       deleteNode: (id) => {
+        const { nodes, edges } = get()
+        const targetNode = nodes.find((n) => n.id === id)
         // ルートノード削除 = 全ノードが消える → シートをゴミ箱へ
-        if (id === 'root') {
+        if (id === 'root' || targetNode?.data.isRoot) {
           get().moveSheetToTrash(get().currentSheetId)
           return
         }
-
-        const { nodes, edges } = get()
         const parentEdge = edges.find((e) => e.target === id)
         const childEdges = edges.filter((e) => e.source === id)
 
@@ -894,8 +917,9 @@ export const useMindmapStore = create<MindmapStore>()(
         })
       },
 
-      loadSheets: (sheets) => {
-        if (sheets.length === 0) return
+      loadSheets: (rawSheets) => {
+        if (rawSheets.length === 0) return
+        const sheets = rawSheets.map(normalizeSheet)
         // リロード時に最後に開いていたシートを復元（なければアクティブな先頭、それも無ければ先頭）
         const savedId = get().currentSheetId
         const current =
@@ -960,6 +984,8 @@ export const useMindmapStore = create<MindmapStore>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return
+        state.sheets = state.sheets.map(normalizeSheet)
+        if (!state.folders) state.folders = []
         const current = state.sheets.find((s) => s.id === state.currentSheetId)
         if (current) {
           state.nodes = current.nodes
