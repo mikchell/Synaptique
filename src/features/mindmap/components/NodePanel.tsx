@@ -2,7 +2,7 @@ import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { AlignJustify, GripVertical, Pin, PinOff } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useIsMobile } from '../../../hooks/useIsMobile'
-import { type NodeColor, useMindmapStore } from '../store/mindmapStore'
+import { type MindmapNodeData, type NodeColor, useMindmapStore } from '../store/mindmapStore'
 
 const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] = [
   { key: 'purple', label: 'パープル', hex: '#f3e8ff', border: 'rgba(139,92,246,0.5)' },
@@ -16,9 +16,11 @@ const COLORS: { key: NodeColor; label: string; hex: string; border: string }[] =
 export function NodePanel() {
   const isMobile = useIsMobile()
   const selectedNodeId = useMindmapStore((s) => s.selectedNodeId)
-  const selectedNode = useMindmapStore((s) =>
-    s.selectedNodeId ? s.nodes.find((n) => n.id === s.selectedNodeId) ?? null : null
-  )
+  const selectedNode = useMindmapStore((s) => {
+    if (!s.selectedNodeId) return null
+    const node = s.nodes.find((n) => n.id === s.selectedNodeId)
+    return node?.type === 'mindmapNode' ? (node as { data: MindmapNodeData }) : null
+  })
   const selectedNodeColor = selectedNode?.data.color ?? null
   const selectedNodeMemo = selectedNode?.data.memo ?? ''
   const selectedNodeBorderWidth = selectedNode?.data.borderWidth ?? null

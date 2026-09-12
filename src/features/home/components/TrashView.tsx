@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { useMindmapStore, type Sheet } from '../../mindmap/store/mindmapStore'
 import { ConfirmDialog } from '../../mindmap/components/ConfirmDialog'
+import { deleteNodeImages, getImagePaths } from '../../../lib/imageApi'
 import { MapGrid } from './MapGrid'
 
 interface Props {
@@ -48,6 +49,8 @@ export function TrashView({ sheets, viewMode }: Props) {
         onConfirm={() => {
           setConfirmOpen(false)
           sheets.forEach((s) => permanentlyDeleteSheet(s.id))
+          const imagePaths = sheets.flatMap((s) => getImagePaths(s.nodes))
+          if (imagePaths.length > 0) deleteNodeImages(imagePaths).catch(() => {})
         }}
         onCancel={() => setConfirmOpen(false)}
       />

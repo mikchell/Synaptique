@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
 import type { Edge, Node } from '@xyflow/react'
-import type { MapType, MindmapNodeData } from '../../mindmap/store/mindmapStore'
+import type { AnyNodeData, MapType } from '../../mindmap/store/mindmapStore'
 import { COLOR_MAP } from '../../mindmap/components/MindmapNode'
 import { computeThumbnailLayout } from '../utils/thumbnailLayout'
 
 interface Props {
-  nodes: Node<MindmapNodeData>[]
+  nodes: Node<AnyNodeData>[]
   edges: Edge[]
   mapType?: MapType
 }

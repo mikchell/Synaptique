@@ -27,11 +27,19 @@ export interface MindmapNodeData extends Record<string, unknown> {
   isCircle?: boolean
 }
 
+// クリップボードから貼り付けた画像ノード（マインドマップのツリー構造には属さない自由配置要素）
+// 表示サイズはnode.style.width/heightで管理する（NodeResizeControlがそのまま更新できるようにするため）
+export interface ImageNodeData extends Record<string, unknown> {
+  path: string
+}
+
+export type AnyNodeData = MindmapNodeData | ImageNodeData
+
 export interface Sheet {
   id: string
   name: string
   mapType?: MapType
-  nodes: Node<MindmapNodeData>[]
+  nodes: Node<AnyNodeData>[]
   edges: Edge[]
   isStarred: boolean
   deletedAt: string | null
@@ -50,13 +58,13 @@ interface MindmapStore {
   folders: Folder[]
   currentSheetId: string
   currentView: 'home' | 'editor'
-  nodes: Node<MindmapNodeData>[]
+  nodes: Node<AnyNodeData>[]
   edges: Edge[]
   selectedNodeId: string | null
   editingNodeId: string | null
   defaultNodeColor: NodeColor | null
   isSaving: boolean
-  layoutSnapshot: Node<MindmapNodeData>[] | null
+  layoutSnapshot: Node<AnyNodeData>[] | null
   templateModalOpen: boolean
   templateModalMode: 'init' | 'new'
 
@@ -65,9 +73,9 @@ interface MindmapStore {
   onConnect: (connection: Connection) => void
 
   addChildNode: (parentId: string) => void
-  addChildNodeBelow: (parentId: string) => void
   addChildNodeInDirection: (parentId: string, direction: FreeDirection) => void
   addSiblingNode: (nodeId: string) => void
+  addImageNode: (path: string, width: number, height: number, position: { x: number; y: number }) => void
   insertNodeBetween: (sourceId: string, targetId: string, edgeId: string, sourceHandle: string, targetHandle: string) => void
   tidyLayout: () => void
   tidySelectedLayout: () => void
@@ -128,7 +136,7 @@ const PADDING = 16
 
 function overlaps(
   pos: { x: number; y: number },
-  node: Node<MindmapNodeData>
+  node: Node<AnyNodeData>
 ): boolean {
   return (
     Math.abs(pos.x - node.position.x) < NODE_W + PADDING &&
@@ -136,23 +144,53 @@ function overlaps(
   )
 }
 
-function avoidCollision(
+// 新しいノードは希望位置にそのまま置き、そこに既存ノードが被っていたら
+// 既存ノード（とその子孫全体）を奥へ押し出して道を空ける（新ノードが遠くへ飛んでいかないようにする）
+function resolveCollisions(
   proposed: { x: number; y: number },
-  nodes: Node<MindmapNodeData>[],
+  nodes: Node<AnyNodeData>[],
+  edges: Edge[],
   shift: 'y' | 'x',
   shiftSign: 1 | -1 = 1
-): { x: number; y: number } {
-  let pos = { ...proposed }
-  for (let i = 0; i < 50; i++) {
-    const hit = nodes.find((n) => overlaps(pos, n))
-    if (!hit) return pos
-    if (shift === 'y') {
-      pos = { ...pos, y: shiftSign > 0 ? hit.position.y + NODE_H + PADDING : hit.position.y - NODE_H - PADDING }
-    } else {
-      pos = { ...pos, x: shiftSign > 0 ? hit.position.x + NODE_W + PADDING : hit.position.x - NODE_W - PADDING }
-    }
+): Map<string, { x: number; y: number }> {
+  const shifted = new Map<string, { x: number; y: number }>()
+
+  const getDescendants = (nodeId: string): string[] => {
+    const children = edges.filter((e) => e.source === nodeId).map((e) => e.target)
+    return children.flatMap((c) => [c, ...getDescendants(c)])
   }
-  return pos
+
+  let checkPos = proposed
+  for (let i = 0; i < 50; i++) {
+    const hit = nodes.find((n) => !shifted.has(n.id) && overlaps(checkPos, n))
+    if (!hit) break
+    const newPos =
+      shift === 'y'
+        ? { x: hit.position.x, y: shiftSign > 0 ? checkPos.y + NODE_H + PADDING : checkPos.y - NODE_H - PADDING }
+        : { x: shiftSign > 0 ? checkPos.x + NODE_W + PADDING : checkPos.x - NODE_W - PADDING, y: hit.position.y }
+    const dx = newPos.x - hit.position.x
+    const dy = newPos.y - hit.position.y
+    shifted.set(hit.id, newPos)
+
+    // 押し出したノードにぶら下がる子孫も同じ分だけ一緒に動かす
+    for (const descId of getDescendants(hit.id)) {
+      if (shifted.has(descId)) continue
+      const desc = nodes.find((n) => n.id === descId)
+      if (!desc) continue
+      shifted.set(descId, { x: desc.position.x + dx, y: desc.position.y + dy })
+    }
+
+    checkPos = newPos
+  }
+  return shifted
+}
+
+function applyShifted(
+  nodes: Node<AnyNodeData>[],
+  shifted: Map<string, { x: number; y: number }>
+): Node<AnyNodeData>[] {
+  if (shifted.size === 0) return nodes
+  return nodes.map((n) => (shifted.has(n.id) ? { ...n, position: shifted.get(n.id)! } : n))
 }
 
 // フリーモードは全方向とも中心ハンドルを使用（エッジがノード中心から動的に接続点を計算）
@@ -243,7 +281,7 @@ export const useMindmapStore = create<MindmapStore>()(
 
       addChildNode: (parentId) => {
         const { nodes, edges } = get()
-        const parent = nodes.find((n) => n.id === parentId)
+        const parent = nodes.find((n) => n.id === parentId) as Node<MindmapNodeData> | undefined
         if (!parent) return
 
         const existingChildren = edges
@@ -262,12 +300,9 @@ export const useMindmapStore = create<MindmapStore>()(
         const newId = generateId()
         const parentDepth = parent.data.depth ?? 0
 
-        // x は親の右側固定、y方向のみ衝突回避
-        const position = avoidCollision(
-          { x: parent.position.x + NODE_W + PADDING, y: baseY },
-          nodes,
-          'y'
-        )
+        // x は親の右側固定。被る既存ノードがあれば新ノードではなくそちらを奥へ押し出す
+        const position = { x: parent.position.x + NODE_W + PADDING, y: baseY }
+        const shifted = resolveCollisions(position, nodes, edges, 'y')
 
         const newNode: Node<MindmapNodeData> = {
           id: newId,
@@ -287,60 +322,7 @@ export const useMindmapStore = create<MindmapStore>()(
         }
 
         set({
-          nodes: [...nodes, newNode],
-          edges: [...edges, newEdge],
-          selectedNodeId: newId,
-          editingNodeId: newId,
-        })
-      },
-
-      addChildNodeBelow: (parentId) => {
-        const { nodes, edges } = get()
-        const parent = nodes.find((n) => n.id === parentId)
-        if (!parent) return
-
-        const existingBelow = edges
-          .filter((e) => e.source === parentId && e.sourceHandle === 'bottom')
-          .map((e) => nodes.find((n) => n.id === e.target))
-          .filter((n): n is Node<MindmapNodeData> => !!n)
-          .sort((a, b) => a.position.y - b.position.y)
-
-        const baseY =
-          existingBelow.length === 0
-            ? parent.position.y + NODE_H + PADDING
-            : existingBelow[existingBelow.length - 1].position.y + NODE_H + PADDING
-
-        const colorIndex = nodes.length % COLORS.length
-        const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
-        const newId = generateId()
-        const parentDepth = parent.data.depth ?? 0
-
-        // x は親と同じ位置固定、y方向のみ衝突回避
-        const position = avoidCollision(
-          { x: parent.position.x, y: baseY },
-          nodes,
-          'y'
-        )
-
-        const newNode: Node<MindmapNodeData> = {
-          id: newId,
-          type: 'mindmapNode',
-          position,
-          data: { label: 'アイデア', color: nodeColor, depth: parentDepth + 1 },
-        }
-
-        const newEdge: Edge = {
-          id: `edge-${parentId}-${newId}`,
-          source: parentId,
-          target: newId,
-          sourceHandle: 'bottom',
-          targetHandle: 'top',
-          type: 'interactive',
-          style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.7 },
-        }
-
-        set({
-          nodes: [...nodes, newNode],
+          nodes: [...applyShifted(nodes, shifted), newNode],
           edges: [...edges, newEdge],
           selectedNodeId: newId,
           editingNodeId: newId,
@@ -349,7 +331,7 @@ export const useMindmapStore = create<MindmapStore>()(
 
       addChildNodeInDirection: (parentId, direction) => {
         const { nodes, edges } = get()
-        const parent = nodes.find((n) => n.id === parentId)
+        const parent = nodes.find((n) => n.id === parentId) as Node<MindmapNodeData> | undefined
         if (!parent) return
 
         const { dx, dy, shift, shiftSign } = DIRECTION_CONFIG[direction]
@@ -380,7 +362,8 @@ export const useMindmapStore = create<MindmapStore>()(
           basePos = { x: baseX, y: parent.position.y + dy * (NODE_H + PADDING) }
         }
 
-        const position = avoidCollision(basePos, nodes, shift, shiftSign)
+        const position = basePos
+        const shifted = resolveCollisions(position, nodes, edges, shift, shiftSign)
         const colorIndex = nodes.length % COLORS.length
         const nodeColor = get().defaultNodeColor ?? COLORS[colorIndex]
         const newId = generateId()
@@ -404,7 +387,7 @@ export const useMindmapStore = create<MindmapStore>()(
         }
 
         set({
-          nodes: [...nodes, newNode],
+          nodes: [...applyShifted(nodes, shifted), newNode],
           edges: [...edges, newEdge],
           selectedNodeId: newId,
           editingNodeId: newId,
@@ -418,8 +401,8 @@ export const useMindmapStore = create<MindmapStore>()(
         if (!parentEdge) return
 
         const parentId = parentEdge.source
-        const parent = nodes.find((n) => n.id === parentId)
-        const currentNode = nodes.find((n) => n.id === nodeId)
+        const parent = nodes.find((n) => n.id === parentId) as Node<MindmapNodeData> | undefined
+        const currentNode = nodes.find((n) => n.id === nodeId) as Node<MindmapNodeData> | undefined
         if (!parent || !currentNode) return
 
         const colorIndex = nodes.length % COLORS.length
@@ -427,12 +410,9 @@ export const useMindmapStore = create<MindmapStore>()(
         const newId = generateId()
         const parentDepth = parent.data.depth ?? 0
 
-        // x は現在ノードと同じ（同世代）、y方向のみ衝突回避
-        const position = avoidCollision(
-          { x: currentNode.position.x, y: currentNode.position.y + NODE_H + PADDING },
-          nodes,
-          'y'
-        )
+        // x は現在ノードと同じ（同世代）。被る既存ノードがあれば新ノードではなくそちらを奥へ押し出す
+        const position = { x: currentNode.position.x, y: currentNode.position.y + NODE_H + PADDING }
+        const shifted = resolveCollisions(position, nodes, edges, 'y')
 
         const newNode: Node<MindmapNodeData> = {
           id: newId,
@@ -452,15 +432,27 @@ export const useMindmapStore = create<MindmapStore>()(
         }
 
         set({
-          nodes: [...nodes, newNode],
+          nodes: [...applyShifted(nodes, shifted), newNode],
           edges: [...edges, newEdge],
           selectedNodeId: newId,
         })
       },
 
+      // クリップボードから貼り付けた画像を、マインドマップのツリーとは無関係な自由配置ノードとして追加
+      addImageNode: (path, width, height, position) => {
+        const newNode: Node<ImageNodeData> = {
+          id: generateId(),
+          type: 'imageNode',
+          position,
+          style: { width, height },
+          data: { path },
+        }
+        set({ nodes: [...get().nodes, newNode], selectedNodeId: newNode.id })
+      },
+
       insertNodeBetween: (sourceId, targetId, edgeId, sourceHandle, targetHandle) => {
         const { nodes, edges } = get()
-        const source = nodes.find((n) => n.id === sourceId)
+        const source = nodes.find((n) => n.id === sourceId) as Node<MindmapNodeData> | undefined
         const target = nodes.find((n) => n.id === targetId)
         if (!source || !target) return
 
@@ -577,7 +569,9 @@ export const useMindmapStore = create<MindmapStore>()(
         const repositioned = nodes.map((n) =>
           positions[n.id] ? { ...n, position: positions[n.id] } : n
         )
-        repositioned.sort((a, b) => (a.data.depth ?? 0) - (b.data.depth ?? 0))
+        repositioned.sort(
+          (a, b) => ((a.data as MindmapNodeData).depth ?? 0) - ((b.data as MindmapNodeData).depth ?? 0)
+        )
 
         const normalizedEdges = edges.map((e) =>
           e.sourceHandle === 'bottom'

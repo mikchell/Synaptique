@@ -1,5 +1,5 @@
 import type { Edge, Node } from '@xyflow/react'
-import type { MapType, MindmapNodeData, NodeColor } from '../../mindmap/store/mindmapStore'
+import type { AnyNodeData, MapType, MindmapNodeData, NodeColor } from '../../mindmap/store/mindmapStore'
 
 const THUMB_W = 220
 const THUMB_H = 140
@@ -38,11 +38,13 @@ export interface ThumbnailLayout {
 }
 
 export function computeThumbnailLayout(
-  nodes: Node<MindmapNodeData>[],
+  rawNodes: Node<AnyNodeData>[],
   edges: Edge[],
   mapType: MapType = 'linear'
 ): ThumbnailLayout {
   const empty: ThumbnailLayout = { viewBoxWidth: THUMB_W, viewBoxHeight: THUMB_H, boxes: [], lines: [] }
+  // 画像ノードはミニプレビューでは省略し、マインドマップのツリー部分のみ描画する
+  const nodes = rawNodes.filter((n): n is Node<MindmapNodeData> => n.type === 'mindmapNode')
   if (nodes.length === 0) return empty
 
   const heightKey = mapType === 'free' ? 'free' : 'linear'

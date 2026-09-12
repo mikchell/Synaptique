@@ -3,6 +3,7 @@ import { Maximize2, RotateCcw, ZoomIn, ZoomOut, LayoutDashboard, ArrowLeftRight 
 import { useReactFlow } from '@xyflow/react'
 import { useState } from 'react'
 import { useMindmapStore } from '../store/mindmapStore'
+import { deleteNodeImages, getImagePaths } from '../../../lib/imageApi'
 import { ConfirmDialog } from './ConfirmDialog'
 
 export function Toolbar() {
@@ -29,8 +30,12 @@ export function Toolbar() {
   }
 
   const handleReset = () => {
+    const imagePaths = getImagePaths(useMindmapStore.getState().nodes)
     resetMindmap()
     setConfirmOpen(false)
+    if (imagePaths.length > 0) {
+      deleteNodeImages(imagePaths).catch(() => {})
+    }
   }
 
   const buttonStyle = {
