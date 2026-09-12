@@ -7,7 +7,7 @@ import {
   SelectionMode,
   useReactFlow,
 } from '@xyflow/react'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useMindmapStore } from '../store/mindmapStore'
 import { useAuth } from '../../auth/useAuth'
@@ -50,8 +50,10 @@ function MindmapFlow() {
         editingNodeId: s.editingNodeId,
       }))
     )
-  const { setCenter, getZoom } = useReactFlow()
+  const { setCenter, getZoom, setViewport, getViewport } = useReactFlow()
   const isMobile = useIsMobile()
+  const containerRef = useRef<HTMLDivElement>(null)
+  const twoFingerRef = useRef<{ midX: number; midY: number; vx: number; vy: number } | null>(null)
 
   useSheetsSync(user ?? null)
 
@@ -64,8 +66,47 @@ function MindmapFlow() {
     setCenter(node.position.x, node.position.y, { zoom: getZoom(), duration: 300 })
   }, [editingNodeId, nodes, setCenter, getZoom])
 
+  // モバイル：2本指ドラッグでパン
+  useEffect(() => {
+    if (!isMobile) return
+    const el = containerRef.current
+    if (!el) return
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 2) { twoFingerRef.current = null; return }
+      const { x, y } = getViewport()
+      twoFingerRef.current = {
+        midX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        midY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+        vx: x, vy: y,
+      }
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || !twoFingerRef.current) return
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+      const dx = midX - twoFingerRef.current.midX
+      const dy = midY - twoFingerRef.current.midY
+      setViewport({ x: twoFingerRef.current.vx + dx, y: twoFingerRef.current.vy + dy, zoom: getViewport().zoom })
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) twoFingerRef.current = null
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: true })
+    el.addEventListener('touchend', onTouchEnd, { passive: true })
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [isMobile, getViewport, setViewport])
+
   return (
-    <div style={{ width: '100vw', height: '100vh', paddingTop: 56, paddingBottom: 40 }}>
+    <div ref={containerRef} style={{ width: '100vw', height: '100vh', paddingTop: 56, paddingBottom: 40 }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -82,6 +123,8 @@ function MindmapFlow() {
         selectionOnDrag={!isMobile}
         selectionMode={SelectionMode.Partial}
         panOnDrag={isMobile ? true : [1, 2]}
+        panOnScroll={!isMobile}
+        panOnScrollSpeed={0.5}
         defaultEdgeOptions={{
           type: 'interactive',
           style: { stroke: '#7c3aed', strokeWidth: 2, opacity: 0.6 },
