@@ -220,9 +220,9 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
 
   return (
     <motion.div
-      initial={{ scale: 0.8, opacity: 0 }}
+      initial={{ scale: 0.6, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 28, delay: (data.depth ?? 0) * 0.08 }}
       className="mindmap-node"
       style={{
         width: '100%',
@@ -232,7 +232,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
         boxSizing: 'border-box',
         borderRadius: nodeBorderRadius,
         background: colors.bg,
-        border: `${data.borderWidth ?? sz.borderWidth}px solid ${colors.border}`,
+        border: `${data.borderWidth ?? sz.borderWidth}px solid ${data.borderWidth && data.borderWidth > 2 ? colors.border.replace('0.4)', '0.85)') : colors.border}`,
         boxShadow: selected
           ? `0 0 0 2px #7c3aed, 0 4px 16px ${colors.glow}`
           : `0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px ${colors.border}`,
