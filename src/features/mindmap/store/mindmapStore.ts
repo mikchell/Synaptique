@@ -31,6 +31,7 @@ export interface MindmapNodeData extends Record<string, unknown> {
 // 表示サイズはnode.style.width/heightで管理する（NodeResizeControlがそのまま更新できるようにするため）
 export interface ImageNodeData extends Record<string, unknown> {
   path: string
+  rotation?: number
 }
 
 export type AnyNodeData = MindmapNodeData | ImageNodeData
@@ -88,6 +89,7 @@ interface MindmapStore {
   updateNodeIsCircle: (id: string, isCircle: boolean) => void
   updateNodeSize: (id: string, width: number, height: number) => void
   updateNodeSizeScale: (id: string, sizeScale: number) => void
+  updateNodeRotation: (id: string, rotation: number) => void
   deleteNode: (id: string) => void
   setSelectedNodeId: (id: string | null) => void
   setEditingNodeId: (id: string | null) => void
@@ -725,6 +727,14 @@ export const useMindmapStore = create<MindmapStore>()(
         set({
           nodes: get().nodes.map((n) =>
             n.id === id ? { ...n, style: { ...n.style, width, height } } : n
+          ),
+        })
+      },
+
+      updateNodeRotation: (id, rotation) => {
+        set({
+          nodes: get().nodes.map((n) =>
+            n.id === id ? { ...n, data: { ...n.data, rotation } } : n
           ),
         })
       },
