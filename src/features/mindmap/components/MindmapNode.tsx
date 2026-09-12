@@ -95,8 +95,8 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
   const colors = COLOR_MAP[data.color]
   const showActions = (selected || hovered) && !editing
   const sz = SIZE_MAP[data.isRoot ? 0 : 1]
-  // フリーモードは縦パディングを横と揃えてアスペクト比を改善（50%楕円が潰れすぎない）
-  const paddingV = isFree ? sz.paddingH : sz.paddingV
+  // フリーモードは縦パディングを1.8倍にしてアスペクト比を約1.4:1に（楕円が丸く見える）
+  const paddingV = isFree ? Math.round(sz.paddingH * 1.8) : sz.paddingV
   const defaultRadius = isFree ? '50%' : sz.borderRadius
   const nodeBorderRadius = data.isCircle ? 9999 : (data.borderRadius !== undefined ? data.borderRadius : defaultRadius)
   // width・height両方使って面積ベースでスケール（より追従感が出る）
