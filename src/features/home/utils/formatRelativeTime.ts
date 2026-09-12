@@ -8,8 +8,11 @@ const UNITS: { unit: Intl.RelativeTimeFormatUnit; ms: number }[] = [
   { unit: 'minute', ms: 60 * 1000 },
 ]
 
-export function formatRelativeTime(iso: string): string {
-  const diffMs = new Date(iso).getTime() - Date.now()
+export function formatRelativeTime(iso: string | undefined): string {
+  const timestamp = iso ? new Date(iso).getTime() : NaN
+  if (Number.isNaN(timestamp)) return ''
+
+  const diffMs = timestamp - Date.now()
   const absMs = Math.abs(diffMs)
 
   if (absMs < 60 * 1000) return 'たった今'
