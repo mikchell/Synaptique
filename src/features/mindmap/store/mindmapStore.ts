@@ -834,18 +834,20 @@ export const useMindmapStore = create<MindmapStore>()(
 
       loadSheets: (sheets) => {
         if (sheets.length === 0) return
-        const first = sheets[0]
+        // リロード時に最後に開いていたシートを復元（なければ先頭）
+        const savedId = get().currentSheetId
+        const current = sheets.find((s) => s.id === savedId) ?? sheets[0]
         // すでにユーザーがテンプレートを選択済み（モーダルが閉じられている）場合は再表示しない
         const alreadyClosed = !get().templateModalOpen
         set({
           sheets,
-          currentSheetId: first.id,
-          nodes: first.nodes,
-          edges: first.edges,
+          currentSheetId: current.id,
+          nodes: current.nodes,
+          edges: current.edges,
           selectedNodeId: null,
-          ...(!first.mapType && !alreadyClosed
+          ...(!current.mapType && !alreadyClosed
             ? { templateModalOpen: true, templateModalMode: 'init' as const }
-            : first.mapType
+            : current.mapType
               ? { templateModalOpen: false }
               : {}),
         })
