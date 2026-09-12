@@ -2,23 +2,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useShallow } from 'zustand/react/shallow'
 import { useMindmapStore, type MapType } from '../store/mindmapStore'
 
-const TEMPLATES: { type: MapType; label: string; desc: string; preview: React.ReactNode }[] = [
-  {
-    type: 'linear',
-    label: '右展開',
-    desc: '右・下方向にノードを展開する\nシンプルな構成に最適',
-    preview: (
-      <svg width="100" height="60" viewBox="0 0 100 60">
-        <rect x="2" y="22" width="28" height="16" rx="4" fill="#ede9fe" stroke="#7c3aed" strokeWidth="1.5" />
-        <line x1="30" y1="30" x2="42" y2="22" stroke="#7c3aed" strokeWidth="1.2" opacity="0.6" />
-        <line x1="30" y1="30" x2="42" y2="38" stroke="#7c3aed" strokeWidth="1.2" opacity="0.6" />
-        <rect x="42" y="14" width="24" height="16" rx="3" fill="#dbeafe" stroke="#3b82f6" strokeWidth="1.2" />
-        <rect x="42" y="30" width="24" height="16" rx="3" fill="#dcfce7" stroke="#22c55e" strokeWidth="1.2" />
-        <line x1="66" y1="22" x2="76" y2="22" stroke="#3b82f6" strokeWidth="1" opacity="0.5" />
-        <rect x="76" y="14" width="20" height="16" rx="3" fill="#fce7f3" stroke="#ec4899" strokeWidth="1" />
-      </svg>
-    ),
-  },
+// 「右展開」テンプレートは廃止（フリー展開に一本化）。今後テンプレートを追加していく前提でこの配列とカードUIは残す。
+export const TEMPLATES: { type: MapType; label: string; desc: string; preview: React.ReactNode }[] = [
   {
     type: 'free',
     label: 'フリー展開',

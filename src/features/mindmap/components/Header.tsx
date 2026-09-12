@@ -37,6 +37,7 @@ export function Header() {
   const { user, signOut } = useAuth()
   const isMobile = useIsMobile()
   const isSaving = useMindmapStore((s) => s.isSaving)
+  const setCurrentView = useMindmapStore((s) => s.setCurrentView)
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
 
   return (
@@ -61,8 +62,20 @@ export function Header() {
           zIndex: 200,
         }}
       >
-        {/* ロゴ */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* ロゴ（クリックでホームに戻る） */}
+        <button
+          onClick={() => setCurrentView('home')}
+          title="ホームに戻る"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+          }}
+        >
           <SynaptiqueIcon />
           <span
             style={{
@@ -75,7 +88,7 @@ export function Header() {
           >
             Synaptique
           </span>
-        </div>
+        </button>
 
         {/* 右側 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16 }}>

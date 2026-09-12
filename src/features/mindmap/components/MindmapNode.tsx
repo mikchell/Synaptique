@@ -6,7 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useIsMobile } from '../../../hooks/useIsMobile'
 import { type MindmapNodeData, type NodeColor, type FreeDirection, useMindmapStore } from '../store/mindmapStore'
 
-const COLOR_MAP: Record<NodeColor, { bg: string; border: string; glow: string; text: string }> = {
+export const COLOR_MAP: Record<NodeColor, { bg: string; border: string; glow: string; text: string }> = {
   purple: { bg: '#f3e8ff', border: 'rgba(139, 92, 246, 0.4)', glow: 'rgba(139, 92, 246, 0.12)', text: '#5b21b6' },
   blue:   { bg: '#dbeafe', border: 'rgba(59, 130, 246, 0.4)',  glow: 'rgba(59, 130, 246, 0.12)',  text: '#1e40af' },
   cyan:   { bg: '#cffafe', border: 'rgba(6, 182, 212, 0.4)',   glow: 'rgba(6, 182, 212, 0.12)',   text: '#0e7490' },
@@ -80,7 +80,6 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
   )
   const isFree = currentMapType === 'free'
   const isMobile = useIsMobile()
-  const canDeleteSheet = useMindmapStore((s) => s.sheets.length > 1)
   const updateNodeSize = useMindmapStore((s) => s.updateNodeSize)
   const [editing, setEditing] = useState(false)
   const [hovered, setHovered] = useState(false)
@@ -408,7 +407,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
 
       {/* 削除ボタン（ルートは複数シートある場合のみ表示） */}
       <AnimatePresence>
-        {showActions && (id !== 'root' || canDeleteSheet) && (
+        {showActions && (
           <div style={{ position: 'absolute', top: -10, left: -10 }}>
             <motion.button
               key="delete"
