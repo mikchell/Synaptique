@@ -79,6 +79,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
   )
   const isFree = currentMapType === 'free'
   const canDeleteSheet = useMindmapStore((s) => s.sheets.length > 1)
+  const updateNodeSize = useMindmapStore((s) => s.updateNodeSize)
   const [editing, setEditing] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [draft, setDraft] = useState(data.label)
@@ -86,6 +87,8 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
   const [showIndicator, setShowIndicator] = useState(false)
   const [indicatorDir, setIndicatorDir] = useState<FreeDirection | null>(null)
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // モバイル：2本指ピンチでノードリサイズ
+  const pinchRef = useRef<{ dist: number; w: number; h: number } | null>(null)
   // カーソル追従：useMotionValue + useSpring でリレンダリングなしにスムーズ追従
   const rawX = useMotionValue(0)
   const rawY = useMotionValue(0)
@@ -137,6 +140,35 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
     },
     [commitEdit, data.label]
   )
+
+  // モバイル：選択中ノード上での2本指ピンチでリサイズ
+  const handlePinchStart = useCallback((e: React.TouchEvent) => {
+    if (!isMobile || !selected || e.touches.length !== 2) return
+    e.stopPropagation()
+    const dist = Math.hypot(
+      e.touches[1].clientX - e.touches[0].clientX,
+      e.touches[1].clientY - e.touches[0].clientY,
+    )
+    pinchRef.current = { dist, w: width ?? sz.minWidth, h: height ?? (sz.paddingV * 2 + sz.fontSize * 2) }
+  }, [isMobile, selected, width, height, sz])
+
+  const handlePinchMove = useCallback((e: React.TouchEvent) => {
+    if (!isMobile || !selected || e.touches.length !== 2 || !pinchRef.current) return
+    e.stopPropagation()
+    const newDist = Math.hypot(
+      e.touches[1].clientX - e.touches[0].clientX,
+      e.touches[1].clientY - e.touches[0].clientY,
+    )
+    const scale = newDist / pinchRef.current.dist
+    const minH = sz.paddingV * 2 + sz.fontSize * 2
+    const newW = Math.max(sz.minWidth, Math.round(pinchRef.current.w * scale))
+    const newH = data.isCircle ? newW : Math.max(minH, Math.round(pinchRef.current.h * scale))
+    updateNodeSize(id, newW, newH)
+  }, [isMobile, selected, id, sz, data.isCircle, updateNodeSize])
+
+  const handlePinchEnd = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length < 2) pinchRef.current = null
+  }, [])
 
   // フリーモード：カーソル方向を8方向にスナップしてインジケーター位置を更新
   // ボタンは固定スナップ位置に置く（カーソル完全追従だとボタンが逃げるため）
@@ -218,6 +250,9 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
       onMouseEnter={() => { cancelIndicatorHide(); setHovered(true) }}
       onMouseLeave={scheduleIndicatorHide}
       onMouseMove={handleMouseMove}
+      onTouchStart={isMobile && selected ? handlePinchStart : undefined}
+      onTouchMove={isMobile && selected ? handlePinchMove : undefined}
+      onTouchEnd={isMobile && selected ? handlePinchEnd : undefined}
     >
       {selected && (['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => (
         <NodeResizeControl

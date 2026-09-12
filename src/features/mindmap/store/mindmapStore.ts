@@ -66,6 +66,7 @@ interface MindmapStore {
   updateNodeBorderWidth: (id: string, borderWidth: number) => void
   updateNodeBorderRadius: (id: string, borderRadius: number) => void
   updateNodeIsCircle: (id: string, isCircle: boolean) => void
+  updateNodeSize: (id: string, width: number, height: number) => void
   updateNodeSizeScale: (id: string, sizeScale: number) => void
   deleteNode: (id: string) => void
   setSelectedNodeId: (id: string | null) => void
@@ -671,6 +672,14 @@ export const useMindmapStore = create<MindmapStore>()(
               }
             }
           }),
+        })
+      },
+
+      updateNodeSize: (id, width, height) => {
+        set({
+          nodes: get().nodes.map((n) =>
+            n.id === id ? { ...n, style: { ...n.style, width, height } } : n
+          ),
         })
       },
 
