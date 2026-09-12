@@ -74,6 +74,9 @@ function MindmapFlow() {
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 2) { twoFingerRef.current = null; return }
+      // 選択中ノード上でのタッチはリサイズ操作なのでパン不可
+      const target = e.target as Element
+      if (target.closest('.react-flow__node.selected')) { twoFingerRef.current = null; return }
       const { x, y } = getViewport()
       twoFingerRef.current = {
         midX: (e.touches[0].clientX + e.touches[1].clientX) / 2,

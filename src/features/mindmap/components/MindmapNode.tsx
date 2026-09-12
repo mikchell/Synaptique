@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motio
 import { Plus, Trash2, StickyNote } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 import { type MindmapNodeData, type NodeColor, type FreeDirection, useMindmapStore } from '../store/mindmapStore'
 
 const COLOR_MAP: Record<NodeColor, { bg: string; border: string; glow: string; text: string }> = {
@@ -78,7 +79,9 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
     }))
   )
   const isFree = currentMapType === 'free'
+  const isMobile = useIsMobile()
   const canDeleteSheet = useMindmapStore((s) => s.sheets.length > 1)
+  const updateNodeSize = useMindmapStore((s) => s.updateNodeSize)
   const [editing, setEditing] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [draft, setDraft] = useState(data.label)
@@ -86,6 +89,8 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
   const [showIndicator, setShowIndicator] = useState(false)
   const [indicatorDir, setIndicatorDir] = useState<FreeDirection | null>(null)
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // モバイル：2本指ピンチでノードリサイズ
+  const pinchRef = useRef<{ dist: number; w: number; h: number } | null>(null)
   // カーソル追従：useMotionValue + useSpring でリレンダリングなしにスムーズ追従
   const rawX = useMotionValue(0)
   const rawY = useMotionValue(0)
@@ -95,10 +100,12 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
   const colors = COLOR_MAP[data.color]
   const showActions = (selected || hovered) && !editing
   const sz = SIZE_MAP[data.isRoot ? 0 : 1]
+  // フリーモードは縦パディングを2.5倍にしてアスペクト比を約1.1:1に（楕円が丸く見える）
+  const paddingV = isFree ? Math.round(sz.paddingH * 2.5) : sz.paddingV
   const defaultRadius = isFree ? '50%' : sz.borderRadius
   const nodeBorderRadius = data.isCircle ? 9999 : (data.borderRadius !== undefined ? data.borderRadius : defaultRadius)
   // width・height両方使って面積ベースでスケール（より追従感が出る）
-  const defaultH = sz.paddingV * 2 + sz.fontSize * 2.2
+  const defaultH = paddingV * 2 + sz.fontSize * 2.2
   const scaleW = width ? width / sz.minWidth : 1
   const scaleH = height ? height / defaultH : 1
   const fontSize = Math.round(sz.fontSize * Math.sqrt(scaleW * scaleH))
@@ -137,6 +144,35 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
     },
     [commitEdit, data.label]
   )
+
+  // モバイル：選択中ノード上での2本指ピンチでリサイズ
+  const handlePinchStart = useCallback((e: React.TouchEvent) => {
+    if (!isMobile || !selected || e.touches.length !== 2) return
+    e.stopPropagation()
+    const dist = Math.hypot(
+      e.touches[1].clientX - e.touches[0].clientX,
+      e.touches[1].clientY - e.touches[0].clientY,
+    )
+    pinchRef.current = { dist, w: width ?? sz.minWidth, h: height ?? (paddingV * 2 + sz.fontSize * 2) }
+  }, [isMobile, selected, width, height, sz])
+
+  const handlePinchMove = useCallback((e: React.TouchEvent) => {
+    if (!isMobile || !selected || e.touches.length !== 2 || !pinchRef.current) return
+    e.stopPropagation()
+    const newDist = Math.hypot(
+      e.touches[1].clientX - e.touches[0].clientX,
+      e.touches[1].clientY - e.touches[0].clientY,
+    )
+    const scale = newDist / pinchRef.current.dist
+    const minH = paddingV * 2 + sz.fontSize * 2
+    const newW = Math.max(sz.minWidth, Math.round(pinchRef.current.w * scale))
+    const newH = data.isCircle ? newW : Math.max(minH, Math.round(pinchRef.current.h * scale))
+    updateNodeSize(id, newW, newH)
+  }, [isMobile, selected, id, sz, data.isCircle, updateNodeSize])
+
+  const handlePinchEnd = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length < 2) pinchRef.current = null
+  }, [])
 
   // フリーモード：カーソル方向を8方向にスナップしてインジケーター位置を更新
   // ボタンは固定スナップ位置に置く（カーソル完全追従だとボタンが逃げるため）
@@ -192,7 +228,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
         width: '100%',
         height: '100%',
         minWidth: sz.minWidth,
-        minHeight: data.isCircle ? sz.minWidth : sz.paddingV * 2 + sz.fontSize * 2,
+        minHeight: data.isCircle ? sz.minWidth : paddingV * 2 + sz.fontSize * 2,
         boxSizing: 'border-box',
         borderRadius: nodeBorderRadius,
         background: colors.bg,
@@ -200,7 +236,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
         boxShadow: selected
           ? `0 0 0 2px #7c3aed, 0 4px 16px ${colors.glow}`
           : `0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px ${colors.border}`,
-        padding: `${sz.paddingV}px ${sz.paddingH}px`,
+        padding: `${paddingV}px ${sz.paddingH}px`,
         cursor: 'grab',
         userSelect: 'none',
         position: 'relative',
@@ -218,6 +254,9 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
       onMouseEnter={() => { cancelIndicatorHide(); setHovered(true) }}
       onMouseLeave={scheduleIndicatorHide}
       onMouseMove={handleMouseMove}
+      onTouchStart={isMobile && selected ? handlePinchStart : undefined}
+      onTouchMove={isMobile && selected ? handlePinchMove : undefined}
+      onTouchEnd={isMobile && selected ? handlePinchEnd : undefined}
     >
       {selected && (['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => (
         <NodeResizeControl
@@ -225,7 +264,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
           position={pos}
           keepAspectRatio={data.isCircle || undefined}
           minWidth={sz.minWidth}
-          minHeight={data.isCircle ? sz.minWidth : sz.paddingV * 2 + sz.fontSize * 2}
+          minHeight={data.isCircle ? sz.minWidth : paddingV * 2 + sz.fontSize * 2}
           style={{
             width: 10, height: 10,
             borderRadius: '50%',
