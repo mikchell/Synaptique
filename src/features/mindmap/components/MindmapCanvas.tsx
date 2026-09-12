@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import { useMindmapStore } from '../store/mindmapStore'
 import { useIsMobile } from '../../../hooks/useIsMobile'
-import { uploadNodeImage } from '../../../lib/imageApi'
+import { processAndUploadImage } from '../../../lib/imageApi'
 import { Header } from './Header'
 import { MindmapNode } from './MindmapNode'
 import { ImageNode } from './ImageNode'
@@ -22,7 +22,6 @@ import { Toolbar } from './Toolbar'
 import { HelpHint } from './HelpHint'
 
 const nodeTypes = { mindmapNode: MindmapNode, imageNode: ImageNode }
-const PASTE_IMAGE_MAX_DIM = 320
 const edgeTypes = { interactive: InteractiveEdge, default: InteractiveEdge }
 
 const MINIMAP_COLOR_MAP: Record<string, string> = {
@@ -56,6 +55,7 @@ function MindmapFlow() {
   const twoFingerRef = useRef<{ midX: number; midY: number; vx: number; vy: number } | null>(null)
 
   // ボードにクリップボードの画像を貼り付け（横展開・フリー展開どちらでも可）
+  // ※ スマホなどキーボード操作の無い環境向けには Toolbar の「画像を追加」ボタンから同じ処理を呼べる
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
       const file = Array.from(e.clipboardData?.items ?? [])
@@ -64,23 +64,10 @@ function MindmapFlow() {
       if (!file) return
       e.preventDefault()
 
-      const objectUrl = URL.createObjectURL(file)
-      const img = new Image()
-      img.onload = () => {
-        const scale = Math.min(1, PASTE_IMAGE_MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight))
-        const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
-        uploadNodeImage(file)
-          .then((path) => {
-            addImageNode(path, Math.round(img.naturalWidth * scale), Math.round(img.naturalHeight * scale), position)
-          })
-          .catch((err) => toast.error(err instanceof Error ? err.message : '画像の貼り付けに失敗しました'))
-          .finally(() => URL.revokeObjectURL(objectUrl))
-      }
-      img.onerror = () => {
-        toast.error('画像の貼り付けに失敗しました')
-        URL.revokeObjectURL(objectUrl)
-      }
-      img.src = objectUrl
+      const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+      processAndUploadImage(file)
+        .then(({ path, width, height }) => addImageNode(path, width, height, position))
+        .catch((err) => toast.error(err instanceof Error ? err.message : '画像の貼り付けに失敗しました'))
     }
 
     window.addEventListener('paste', handlePaste)

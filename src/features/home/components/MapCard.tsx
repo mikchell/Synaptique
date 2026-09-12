@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Pencil, RotateCcw, Star, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useMindmapStore, type Sheet } from '../../mindmap/store/mindmapStore'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 import { ConfirmDialog } from '../../mindmap/components/ConfirmDialog'
 import { deleteNodeImages, getImagePaths } from '../../../lib/imageApi'
 import { MapThumbnail } from './MapThumbnail'
@@ -37,6 +38,7 @@ export function MapCard({ sheet, viewMode, variant }: Props) {
   const permanentlyDeleteSheet = useMindmapStore((s) => s.permanentlyDeleteSheet)
   const renameSheet = useMindmapStore((s) => s.renameSheet)
   const moveSheetToFolder = useMindmapStore((s) => s.moveSheetToFolder)
+  const isMobile = useIsMobile()
   const [hovered, setHovered] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -147,7 +149,7 @@ export function MapCard({ sheet, viewMode, variant }: Props) {
           </p>
         </div>
 
-        {hovered && (
+        {(hovered || isMobile) && (
           <div
             style={
               isList

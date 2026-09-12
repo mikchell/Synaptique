@@ -2,6 +2,7 @@ import { Clock, Folder as FolderIcon, LayoutGrid, LayoutTemplate, LogOut, Pencil
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../auth/useAuth'
 import { useMindmapStore, type Folder } from '../../mindmap/store/mindmapStore'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 import { ConfirmDialog } from '../../mindmap/components/ConfirmDialog'
 
 export type HomeSection = 'recent' | 'all' | 'starred' | 'templates' | 'trash' | 'folder'
@@ -77,6 +78,7 @@ function FolderRow({
   const renameFolder = useMindmapStore((s) => s.renameFolder)
   const deleteFolder = useMindmapStore((s) => s.deleteFolder)
   const moveSheetToFolder = useMindmapStore((s) => s.moveSheetToFolder)
+  const isMobile = useIsMobile()
   const [hovered, setHovered] = useState(false)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(folder.name)
@@ -154,7 +156,7 @@ function FolderRow({
         </button>
       )}
 
-      {!editing && hovered && (
+      {!editing && (hovered || isMobile) && (
         <div style={{ position: 'absolute', right: 6, display: 'flex', gap: 2 }}>
           <button
             onClick={(e) => { e.stopPropagation(); setEditing(true) }}

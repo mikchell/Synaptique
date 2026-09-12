@@ -1,5 +1,6 @@
 import { Grid2x2, List as ListIcon, Plus, Search } from 'lucide-react'
 import { useMindmapStore } from '../../mindmap/store/mindmapStore'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 
 export type TopBarVariant = 'recent' | 'library' | 'templates' | 'trash'
 
@@ -25,6 +26,7 @@ export function TopBar({
   onViewModeChange,
 }: Props) {
   const openTemplateModal = useMindmapStore((s) => s.openTemplateModal)
+  const isMobile = useIsMobile()
 
   const showSearch = variant !== 'templates'
   const showSort = variant === 'library'
@@ -44,7 +46,7 @@ export function TopBar({
     >
       <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1e293b' }}>{title}</h1>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         {showSearch && (
           <div style={{ position: 'relative' }}>
             <Search
@@ -57,7 +59,7 @@ export function TopBar({
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="ファイルを検索"
               style={{
-                width: 220,
+                width: isMobile ? 150 : 220,
                 padding: '8px 12px 8px 32px',
                 borderRadius: 10,
                 border: '1px solid rgba(0,0,0,0.1)',
