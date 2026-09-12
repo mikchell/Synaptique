@@ -1,23 +1,37 @@
 import { motion } from 'framer-motion'
-import { Maximize2, RotateCcw, ZoomIn, ZoomOut, LayoutDashboard, ArrowLeftRight } from 'lucide-react'
+import { ImagePlus, Maximize2, RotateCcw, ZoomIn, ZoomOut, LayoutDashboard, ArrowLeftRight } from 'lucide-react'
 import { useReactFlow } from '@xyflow/react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { useMindmapStore } from '../store/mindmapStore'
-import { deleteNodeImages, getImagePaths } from '../../../lib/imageApi'
+import { deleteNodeImages, getImagePaths, processAndUploadImage } from '../../../lib/imageApi'
 import { ConfirmDialog } from './ConfirmDialog'
 
 export function Toolbar() {
-  const { zoomIn, zoomOut, fitView } = useReactFlow()
+  const { zoomIn, zoomOut, fitView, screenToFlowPosition } = useReactFlow()
   const selectedCount = useMindmapStore((s) => s.nodes.filter((n) => n.selected).length)
   const resetMindmap = useMindmapStore((s) => s.resetMindmap)
   const tidyLayout = useMindmapStore((s) => s.tidyLayout)
   const tidySelectedLayout = useMindmapStore((s) => s.tidySelectedLayout)
   const toggleLayout = useMindmapStore((s) => s.toggleLayout)
+  const addImageNode = useMindmapStore((s) => s.addImageNode)
   const hasSnapshot = useMindmapStore((s) => s.layoutSnapshot !== null)
   const isFree = useMindmapStore((s) => s.sheets.find((sh) => sh.id === s.currentSheetId)?.mapType === 'free')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [tidyConfirmOpen, setTidyConfirmOpen] = useState(false)
   const hasSelection = selectedCount >= 2
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // スマホなどペースト操作が無い環境向けの画像追加（クリップボード貼り付けと同じ処理を使う）
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    processAndUploadImage(file)
+      .then(({ path, width, height }) => addImageNode(path, width, height, position))
+      .catch((err) => toast.error(err instanceof Error ? err.message : '画像の追加に失敗しました'))
+  }
 
   const handleTidyConfirm = () => {
     if (hasSelection) {
@@ -188,6 +202,32 @@ export function Toolbar() {
             <ArrowLeftRight size={16} />
           </button>
         )}
+
+        {/* 画像を追加（クリップボード貼り付けが使えない環境向け） */}
+        <button
+          style={buttonStyle}
+          onClick={() => fileInputRef.current?.click()}
+          onMouseEnter={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(124, 58, 237, 0.2)'
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#a78bfa'
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(124, 58, 237, 0.4)'
+          }}
+          onMouseLeave={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.9)'
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#64748b'
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(0,0,0,0.1)'
+          }}
+          title="画像を追加"
+        >
+          <ImagePlus size={16} />
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelected}
+          style={{ display: 'none' }}
+        />
       </div>
 
       {/* リセット */}

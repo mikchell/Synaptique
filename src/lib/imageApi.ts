@@ -7,6 +7,7 @@ const SIGNED_URL_EXPIRES_IN = 60 * 60 * 24 * 7 // 7日
 const MAX_ORIGINAL_BYTES = 20 * 1024 * 1024 // 20MB（これを超える貼り付けは処理前に弾く）
 const MAX_UPLOAD_DIM = 1600 // アップロードする画像の最大辺（px）
 const UPLOAD_QUALITY = 0.85
+const DISPLAY_MAX_DIM = 320 // ボード上に置いたときの初期表示サイズの最大辺（px）
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -59,6 +60,26 @@ export async function uploadNodeImage(file: File): Promise<string> {
   const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile)
   if (error) throw error
   return path
+}
+
+// 画像ファイルをアップロードし、ボードに置くための情報（保存パス・初期表示サイズ）を返す
+// クリップボード貼り付け・ファイル選択どちらの入力経路からも共通で使う
+export async function processAndUploadImage(
+  file: File
+): Promise<{ path: string; width: number; height: number }> {
+  const objectUrl = URL.createObjectURL(file)
+  try {
+    const img = await loadImage(objectUrl)
+    const scale = Math.min(1, DISPLAY_MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight))
+    const path = await uploadNodeImage(file)
+    return {
+      path,
+      width: Math.round(img.naturalWidth * scale),
+      height: Math.round(img.naturalHeight * scale),
+    }
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
 }
 
 // 表示用の署名付きURLを取得（非公開バケットのため毎回発行する）
