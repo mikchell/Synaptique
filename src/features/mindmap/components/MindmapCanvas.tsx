@@ -10,8 +10,6 @@ import {
 import { useCallback, useEffect, useRef } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useMindmapStore } from '../store/mindmapStore'
-import { useAuth } from '../../auth/useAuth'
-import { useSheetsSync } from '../hooks/useSheetsSync'
 import { useIsMobile } from '../../../hooks/useIsMobile'
 import { Header } from './Header'
 import { MindmapNode } from './MindmapNode'
@@ -19,8 +17,6 @@ import { InteractiveEdge } from './InteractiveEdge'
 import { NodePanel } from './NodePanel'
 import { Toolbar } from './Toolbar'
 import { HelpHint } from './HelpHint'
-import { SheetTabs } from './SheetTabs'
-import { TemplateSelectModal } from './TemplateSelectModal'
 
 const nodeTypes = { mindmapNode: MindmapNode }
 const edgeTypes = { interactive: InteractiveEdge, default: InteractiveEdge }
@@ -37,7 +33,6 @@ const getMinimapNodeColor = (node: { data: unknown }) =>
   MINIMAP_COLOR_MAP[(node.data as { color: string }).color] ?? '#7c3aed'
 
 function MindmapFlow() {
-  const { user } = useAuth()
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setSelectedNodeId, editingNodeId } =
     useMindmapStore(
       useShallow((s) => ({
@@ -54,8 +49,6 @@ function MindmapFlow() {
   const isMobile = useIsMobile()
   const containerRef = useRef<HTMLDivElement>(null)
   const twoFingerRef = useRef<{ midX: number; midY: number; vx: number; vy: number } | null>(null)
-
-  useSheetsSync(user ?? null)
 
   const handlePaneClick = useCallback(() => setSelectedNodeId(null), [setSelectedNodeId])
 
@@ -109,7 +102,7 @@ function MindmapFlow() {
   }, [isMobile, getViewport, setViewport])
 
   return (
-    <div ref={containerRef} style={{ width: '100vw', height: '100vh', paddingTop: 56, paddingBottom: 40 }}>
+    <div ref={containerRef} style={{ width: '100vw', height: '100vh', paddingTop: 56 }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -152,8 +145,6 @@ function MindmapFlow() {
       <Toolbar />
       <NodePanel />
       <HelpHint />
-      <SheetTabs />
-      <TemplateSelectModal />
     </div>
   )
 }

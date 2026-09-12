@@ -33,11 +33,23 @@ export interface Sheet {
   mapType?: MapType
   nodes: Node<MindmapNodeData>[]
   edges: Edge[]
+  isStarred: boolean
+  deletedAt: string | null
+  lastOpenedAt: string
+  updatedAt: string
+  folderId: string | null
+}
+
+export interface Folder {
+  id: string
+  name: string
 }
 
 interface MindmapStore {
   sheets: Sheet[]
+  folders: Folder[]
   currentSheetId: string
+  currentView: 'home' | 'editor'
   nodes: Node<MindmapNodeData>[]
   edges: Edge[]
   selectedNodeId: string | null
@@ -78,11 +90,21 @@ interface MindmapStore {
   openTemplateModal: (mode: 'init' | 'new') => void
   closeTemplateModal: () => void
   setCurrentSheetMapType: (mapType: MapType) => void
+  setCurrentView: (view: 'home' | 'editor') => void
   addSheet: (mapType: MapType) => void
-  deleteSheet: (id: string) => void
+  moveSheetToTrash: (id: string) => void
+  restoreSheetFromTrash: (id: string) => void
+  permanentlyDeleteSheet: (id: string) => void
+  toggleSheetStar: (id: string) => void
+  touchSheetUpdatedAt: (id: string) => void
   renameSheet: (id: string, name: string) => void
   switchSheet: (id: string) => void
   loadSheets: (sheets: Sheet[]) => void
+  moveSheetToFolder: (sheetId: string, folderId: string | null) => void
+  createFolder: (name: string) => void
+  renameFolder: (id: string, name: string) => void
+  deleteFolder: (id: string) => void
+  loadFolders: (folders: Folder[]) => void
 }
 
 const makeInitialNodes = (): Node<MindmapNodeData>[] => [
@@ -153,13 +175,20 @@ const initialSheet: Sheet = {
   name: 'シート1',
   nodes: makeInitialNodes(),
   edges: [],
+  isStarred: false,
+  deletedAt: null,
+  lastOpenedAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  folderId: null,
 }
 
 export const useMindmapStore = create<MindmapStore>()(
   persist(
     (set, get) => ({
       sheets: [initialSheet],
+      folders: [],
       currentSheetId: initialSheet.id,
+      currentView: 'home',
       nodes: initialSheet.nodes,
       edges: initialSheet.edges,
       selectedNodeId: null,
@@ -692,10 +721,9 @@ export const useMindmapStore = create<MindmapStore>()(
       },
 
       deleteNode: (id) => {
-        // ルートノード削除 = 全ノードが消える → シートを削除（最後の1枚は削除不可）
+        // ルートノード削除 = 全ノードが消える → シートをゴミ箱へ
         if (id === 'root') {
-          if (get().sheets.length <= 1) return
-          get().deleteSheet(get().currentSheetId)
+          get().moveSheetToTrash(get().currentSheetId)
           return
         }
 
@@ -757,6 +785,8 @@ export const useMindmapStore = create<MindmapStore>()(
       openTemplateModal: (mode) => set({ templateModalOpen: true, templateModalMode: mode }),
       closeTemplateModal: () => set({ templateModalOpen: false }),
 
+      setCurrentView: (view) => set({ currentView: view }),
+
       setCurrentSheetMapType: (mapType) => {
         const { sheets, currentSheetId, nodes } = get()
         set({
@@ -772,16 +802,24 @@ export const useMindmapStore = create<MindmapStore>()(
           s.id === currentSheetId ? { ...s, nodes, edges } : s
         )
         const initialNodes = makeInitialNodes()
+        const now = new Date().toISOString()
+        const activeCount = updatedSheets.filter((s) => !s.deletedAt).length
         const newSheet: Sheet = {
           id: generateSheetId(),
-          name: `シート${updatedSheets.length + 1}`,
+          name: `シート${activeCount + 1}`,
           mapType,
           nodes: initialNodes,
           edges: [],
+          isStarred: false,
+          deletedAt: null,
+          lastOpenedAt: now,
+          updatedAt: now,
+          folderId: null,
         }
         set({
           sheets: [...updatedSheets, newSheet],
           currentSheetId: newSheet.id,
+          currentView: 'editor',
           nodes: newSheet.nodes,
           edges: newSheet.edges,
           selectedNodeId: initialNodes[0]?.id ?? null,
@@ -789,22 +827,42 @@ export const useMindmapStore = create<MindmapStore>()(
         })
       },
 
-      deleteSheet: (id) => {
+      moveSheetToTrash: (id) => {
         const { sheets, currentSheetId, nodes, edges } = get()
-        if (sheets.length <= 1) return
+        const now = new Date().toISOString()
         const updatedSheets = sheets
           .map((s) => (s.id === currentSheetId ? { ...s, nodes, edges } : s))
-          .filter((s) => s.id !== id)
-        const nextSheet =
-          id === currentSheetId
-            ? updatedSheets[0]
-            : updatedSheets.find((s) => s.id === currentSheetId)!
+          .map((s) => (s.id === id ? { ...s, deletedAt: now } : s))
+
+        if (id !== currentSheetId) {
+          set({ sheets: updatedSheets })
+          return
+        }
+        // 編集中のシートをゴミ箱に入れた場合：シートタブが無いのでホーム画面へ戻す
+        set({ sheets: updatedSheets, currentView: 'home', selectedNodeId: null })
+      },
+
+      restoreSheetFromTrash: (id) => {
         set({
-          sheets: updatedSheets,
-          currentSheetId: nextSheet.id,
-          nodes: nextSheet.nodes,
-          edges: nextSheet.edges,
-          selectedNodeId: null,
+          sheets: get().sheets.map((s) => (s.id === id ? { ...s, deletedAt: null } : s)),
+        })
+      },
+
+      permanentlyDeleteSheet: (id) => {
+        set({ sheets: get().sheets.filter((s) => s.id !== id) })
+      },
+
+      toggleSheetStar: (id) => {
+        set({
+          sheets: get().sheets.map((s) => (s.id === id ? { ...s, isStarred: !s.isStarred } : s)),
+        })
+      },
+
+      touchSheetUpdatedAt: (id) => {
+        set({
+          sheets: get().sheets.map((s) =>
+            s.id === id ? { ...s, updatedAt: new Date().toISOString() } : s
+          ),
         })
       },
 
@@ -816,9 +874,13 @@ export const useMindmapStore = create<MindmapStore>()(
 
       switchSheet: (id) => {
         const { sheets, currentSheetId, nodes, edges } = get()
-        if (id === currentSheetId) return
+        const now = new Date().toISOString()
+        if (id === currentSheetId) {
+          set({ sheets: sheets.map((s) => (s.id === id ? { ...s, lastOpenedAt: now } : s)) })
+          return
+        }
         const updatedSheets = sheets.map((s) =>
-          s.id === currentSheetId ? { ...s, nodes, edges } : s
+          s.id === currentSheetId ? { ...s, nodes, edges } : s.id === id ? { ...s, lastOpenedAt: now } : s
         )
         const target = updatedSheets.find((s) => s.id === id)
         if (!target) return
@@ -834,9 +896,12 @@ export const useMindmapStore = create<MindmapStore>()(
 
       loadSheets: (sheets) => {
         if (sheets.length === 0) return
-        // リロード時に最後に開いていたシートを復元（なければ先頭）
+        // リロード時に最後に開いていたシートを復元（なければアクティブな先頭、それも無ければ先頭）
         const savedId = get().currentSheetId
-        const current = sheets.find((s) => s.id === savedId) ?? sheets[0]
+        const current =
+          sheets.find((s) => s.id === savedId && !s.deletedAt) ??
+          sheets.find((s) => !s.deletedAt) ??
+          sheets[0]
         // すでにユーザーがテンプレートを選択済み（モーダルが閉じられている）場合は再表示しない
         const alreadyClosed = !get().templateModalOpen
         set({
@@ -852,6 +917,33 @@ export const useMindmapStore = create<MindmapStore>()(
               : {}),
         })
       },
+
+      moveSheetToFolder: (sheetId, folderId) => {
+        set({
+          sheets: get().sheets.map((s) => (s.id === sheetId ? { ...s, folderId } : s)),
+        })
+      },
+
+      createFolder: (name) => {
+        const trimmed = name.trim()
+        if (!trimmed) return
+        set({ folders: [...get().folders, { id: crypto.randomUUID(), name: trimmed }] })
+      },
+
+      renameFolder: (id, name) => {
+        const trimmed = name.trim()
+        if (!trimmed) return
+        set({ folders: get().folders.map((f) => (f.id === id ? { ...f, name: trimmed } : f)) })
+      },
+
+      deleteFolder: (id) => {
+        set({
+          folders: get().folders.filter((f) => f.id !== id),
+          sheets: get().sheets.map((s) => (s.folderId === id ? { ...s, folderId: null } : s)),
+        })
+      },
+
+      loadFolders: (folders) => set({ folders }),
     }),
     {
       name: 'synaptique-storage',
@@ -862,7 +954,9 @@ export const useMindmapStore = create<MindmapStore>()(
             : s
         ),
         currentSheetId: state.currentSheetId,
+        currentView: state.currentView,
         defaultNodeColor: state.defaultNodeColor,
+        folders: state.folders,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return
