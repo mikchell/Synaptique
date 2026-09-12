@@ -220,9 +220,9 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
 
   return (
     <motion.div
-      initial={{ scale: 0.6, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 28, delay: (data.depth ?? 0) * 0.08 }}
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: [0, 1.18, 1], opacity: [0, 1, 1] }}
+      transition={{ duration: 0.28, times: [0, 0.55, 1], ease: 'easeOut', delay: (data.depth ?? 0) * 0.1 }}
       className="mindmap-node"
       style={{
         width: '100%',
