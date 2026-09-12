@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motio
 import { Plus, Trash2, StickyNote } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 import { type MindmapNodeData, type NodeColor, type FreeDirection, useMindmapStore } from '../store/mindmapStore'
 
 const COLOR_MAP: Record<NodeColor, { bg: string; border: string; glow: string; text: string }> = {
@@ -78,6 +79,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
     }))
   )
   const isFree = currentMapType === 'free'
+  const isMobile = useIsMobile()
   const canDeleteSheet = useMindmapStore((s) => s.sheets.length > 1)
   const updateNodeSize = useMindmapStore((s) => s.updateNodeSize)
   const [editing, setEditing] = useState(false)
