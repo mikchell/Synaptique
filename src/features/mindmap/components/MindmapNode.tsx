@@ -100,10 +100,12 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
   const colors = COLOR_MAP[data.color]
   const showActions = (selected || hovered) && !editing
   const sz = SIZE_MAP[data.isRoot ? 0 : 1]
+  // フリーモードは縦パディングを2倍にしてアスペクト比を約1.3:1に（楕円が丸く見える）
+  const paddingV = isFree ? sz.paddingH * 2 : sz.paddingV
   const defaultRadius = isFree ? '50%' : sz.borderRadius
   const nodeBorderRadius = data.isCircle ? 9999 : (data.borderRadius !== undefined ? data.borderRadius : defaultRadius)
   // width・height両方使って面積ベースでスケール（より追従感が出る）
-  const defaultH = sz.paddingV * 2 + sz.fontSize * 2.2
+  const defaultH = paddingV * 2 + sz.fontSize * 2.2
   const scaleW = width ? width / sz.minWidth : 1
   const scaleH = height ? height / defaultH : 1
   const fontSize = Math.round(sz.fontSize * Math.sqrt(scaleW * scaleH))
@@ -151,7 +153,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
       e.touches[1].clientX - e.touches[0].clientX,
       e.touches[1].clientY - e.touches[0].clientY,
     )
-    pinchRef.current = { dist, w: width ?? sz.minWidth, h: height ?? (sz.paddingV * 2 + sz.fontSize * 2) }
+    pinchRef.current = { dist, w: width ?? sz.minWidth, h: height ?? (paddingV * 2 + sz.fontSize * 2) }
   }, [isMobile, selected, width, height, sz])
 
   const handlePinchMove = useCallback((e: React.TouchEvent) => {
@@ -162,7 +164,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
       e.touches[1].clientY - e.touches[0].clientY,
     )
     const scale = newDist / pinchRef.current.dist
-    const minH = sz.paddingV * 2 + sz.fontSize * 2
+    const minH = paddingV * 2 + sz.fontSize * 2
     const newW = Math.max(sz.minWidth, Math.round(pinchRef.current.w * scale))
     const newH = data.isCircle ? newW : Math.max(minH, Math.round(pinchRef.current.h * scale))
     updateNodeSize(id, newW, newH)
@@ -226,7 +228,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
         width: '100%',
         height: '100%',
         minWidth: sz.minWidth,
-        minHeight: data.isCircle ? sz.minWidth : sz.paddingV * 2 + sz.fontSize * 2,
+        minHeight: data.isCircle ? sz.minWidth : paddingV * 2 + sz.fontSize * 2,
         boxSizing: 'border-box',
         borderRadius: nodeBorderRadius,
         background: colors.bg,
@@ -234,7 +236,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
         boxShadow: selected
           ? `0 0 0 2px #7c3aed, 0 4px 16px ${colors.glow}`
           : `0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px ${colors.border}`,
-        padding: `${sz.paddingV}px ${sz.paddingH}px`,
+        padding: `${paddingV}px ${sz.paddingH}px`,
         cursor: 'grab',
         userSelect: 'none',
         position: 'relative',
@@ -262,7 +264,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
           position={pos}
           keepAspectRatio={data.isCircle || undefined}
           minWidth={sz.minWidth}
-          minHeight={data.isCircle ? sz.minWidth : sz.paddingV * 2 + sz.fontSize * 2}
+          minHeight={data.isCircle ? sz.minWidth : paddingV * 2 + sz.fontSize * 2}
           style={{
             width: 10, height: 10,
             borderRadius: '50%',
