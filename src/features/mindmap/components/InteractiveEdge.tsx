@@ -1,10 +1,9 @@
-import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getBezierPath, getStraightPath, useInternalNode } from '@xyflow/react'
+import { EdgeLabelRenderer, type EdgeProps, getBezierPath, getStraightPath, useInternalNode } from '@xyflow/react'
+import { motion } from 'framer-motion'
 import { Plus } from 'lucide-react'
 import { memo, useRef, useState } from 'react'
 import { useMindmapStore } from '../store/mindmapStore'
 
-// 中心から対象方向への射線と楕円の正確な交点を計算
-// 旧実装(cos/sin)はパラメトリック点で方向がズレるため射線交点式に修正
 function ellipseBorderPoint(
   cx: number, cy: number,
   rx: number, ry: number,
@@ -13,7 +12,6 @@ function ellipseBorderPoint(
   const dx = toX - cx
   const dy = toY - cy
   if (dx === 0 && dy === 0) return { x: cx + rx, y: cy }
-  // t = 1 / sqrt((dx/rx)² + (dy/ry)²)  →  交点 = (cx + t·dx, cy + t·dy)
   const t = 1 / Math.sqrt((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry))
   return { x: cx + dx * t, y: cy + dy * t }
 }
@@ -38,9 +36,10 @@ function InteractiveEdgeComponent({
   const isFree = useMindmapStore((s) =>
     s.sheets.find((sh) => sh.id === s.currentSheetId)?.mapType === 'free'
   )
+  // エッジ描画アニメーションの遅延：接続元ノードのdepthに基づく
+  const sourceDepth = useMindmapStore((s) => s.nodes.find((n) => n.id === source)?.data.depth ?? 0)
+  const edgeDelay = sourceDepth * 0.15 + 0.18
 
-  // ハンドル種別に依存せずpositionAbsoluteからノード中心を計算
-  // → ドラッグ中もtargetX/Yプロップ変化でエッジが再描画される
   const sourceNode = useInternalNode(source)
   const targetNode = useInternalNode(target)
 
@@ -68,6 +67,8 @@ function InteractiveEdgeComponent({
     ? getStraightPath({ sourceX: sx, sourceY: sy, targetX: tx, targetY: ty })
     : getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
 
+  const { opacity: styleOpacity, ...restStyle } = (style ?? {}) as React.CSSProperties
+
   const handleEnter = () => {
     if (leaveTimer.current) clearTimeout(leaveTimer.current)
     setHovered(true)
@@ -90,7 +91,20 @@ function InteractiveEdgeComponent({
 
   return (
     <>
-      <BaseEdge path={edgePath} style={{ ...style, pointerEvents: 'none' }} />
+      {/* エッジ本体：マウント時にpathLength 0→1で線が伸びるアニメーション */}
+      <motion.path
+        className="react-flow__edge-path"
+        d={edgePath}
+        fill="none"
+        style={{ ...restStyle, pointerEvents: 'none' }}
+        initial={{ pathLength: 0, opacity: 0 }}
+        animate={{ pathLength: 1, opacity: Number(styleOpacity ?? 0.6) }}
+        transition={{
+          pathLength: { duration: 0.4, delay: edgeDelay, ease: 'easeOut' },
+          opacity: { duration: 0.05, delay: edgeDelay },
+        }}
+      />
+      {/* ホバー判定用の透明な太いパス */}
       <path
         d={edgePath}
         fill="none"

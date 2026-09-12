@@ -220,9 +220,9 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
 
   return (
     <motion.div
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      initial={{ scale: 0 }}
+      animate={{ scale: [0, 1.2, 1] }}
+      transition={{ duration: 0.25, times: [0, 0.6, 1], ease: 'easeOut', delay: (data.depth ?? 0) * 0.15 }}
       className="mindmap-node"
       style={{
         width: '100%',
@@ -232,7 +232,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
         boxSizing: 'border-box',
         borderRadius: nodeBorderRadius,
         background: colors.bg,
-        border: `${data.borderWidth ?? sz.borderWidth}px solid ${colors.border}`,
+        border: `${data.borderWidth ?? sz.borderWidth}px solid ${data.borderWidth && data.borderWidth > 2 ? colors.border.replace('0.4)', '0.85)') : colors.border}`,
         boxShadow: selected
           ? `0 0 0 2px #7c3aed, 0 4px 16px ${colors.glow}`
           : `0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px ${colors.border}`,
@@ -258,6 +258,18 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
       onTouchMove={isMobile && selected ? handlePinchMove : undefined}
       onTouchEnd={isMobile && selected ? handlePinchEnd : undefined}
     >
+      {/* マウント時のみ：ネットワーク拡散リング */}
+      <motion.div
+        initial={{ scale: 1, opacity: 0.7 }}
+        animate={{ scale: 2.6, opacity: 0 }}
+        transition={{ duration: 0.6, delay: (data.depth ?? 0) * 0.15 + 0.1, ease: 'easeOut' }}
+        style={{
+          position: 'absolute', inset: 0,
+          borderRadius: nodeBorderRadius,
+          border: `2px solid ${colors.border.replace('0.4)', '0.9)')}`,
+          pointerEvents: 'none',
+        }}
+      />
       {selected && (['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => (
         <NodeResizeControl
           key={pos}
