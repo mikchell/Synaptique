@@ -95,7 +95,7 @@ function MindmapNodeComponent({ id, data, selected, width, height }: NodeProps<N
   const colors = COLOR_MAP[data.color]
   const showActions = (selected || hovered) && !editing
   const sz = SIZE_MAP[data.isRoot ? 0 : 1]
-  const defaultRadius = isFree ? 9999 : sz.borderRadius
+  const defaultRadius = isFree ? '50%' : sz.borderRadius
   const nodeBorderRadius = data.isCircle ? 9999 : (data.borderRadius !== undefined ? data.borderRadius : defaultRadius)
   // width・height両方使って面積ベースでスケール（より追従感が出る）
   const defaultH = sz.paddingV * 2 + sz.fontSize * 2.2
